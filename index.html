@@ -10,8 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- XLSX Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- JSZip for better Excel handling -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -113,136 +111,46 @@
             padding: 0 2rem;
         }
 
-        /* Auto Load Status */
-        .auto-load-status {
-            background: white;
-            border-radius: 20px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-
-        .status-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .status-header i {
-            font-size: 2rem;
-            color: #2a5298;
-        }
-
-        .status-header h3 {
-            color: #1e3c72;
-            font-size: 1.3rem;
-        }
-
-        .loading-progress {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .progress-bar {
-            flex: 1;
-            height: 10px;
-            background: #e0e0e0;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2a5298, #667eea);
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        .progress-text {
-            font-weight: 600;
-            color: #2a5298;
-            min-width: 100px;
-        }
-
-        .data-source-info {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #e8f0fe;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .data-source-info i {
-            color: #2a5298;
-        }
-
-        .file-path {
-            background: white;
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-family: monospace;
-            color: #1e3c72;
-        }
-
-        /* Upload Section (Optional) */
-        .upload-section {
+        /* Loading Status */
+        .loading-status {
             background: white;
             border-radius: 20px;
             padding: 2rem;
             margin-bottom: 2rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-
-        .upload-area {
-            border: 3px dashed #2a5298;
-            border-radius: 15px;
-            padding: 2rem;
             text-align: center;
-            background: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.3s;
         }
 
-        .upload-area:hover {
-            background: #e8f0fe;
-            border-color: #667eea;
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2a5298;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
         }
 
-        .upload-area i {
-            font-size: 3rem;
-            color: #2a5298;
-            margin-bottom: 0.5rem;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .upload-area h3 {
-            font-size: 1.2rem;
-            color: #1e3c72;
-            margin-bottom: 0.3rem;
-        }
-
-        .upload-area p {
+        .loading-status p {
             color: #666;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
         }
 
-        .file-info {
-            display: inline-block;
-            background: #e0e7ff;
-            color: #2a5298;
-            padding: 0.3rem 1rem;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            justify-content: center;
         }
 
         /* Database Stats */
@@ -622,15 +530,6 @@
             font-weight: 600;
         }
 
-        .coverage {
-            font-size: 0.85rem;
-            color: #666;
-            background: #f5f5f5;
-            padding: 0.2rem 0.6rem;
-            border-radius: 50px;
-            display: inline-block;
-        }
-
         .journal-footer {
             display: flex;
             gap: 0.5rem;
@@ -672,32 +571,6 @@
         .btn-outline:hover {
             background: #2a5298;
             color: white;
-        }
-
-        /* Loading */
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 3rem;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #2a5298;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         /* Modal */
@@ -833,32 +706,6 @@
             background: #1e3c72;
             transform: translateY(-5px);
         }
-
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .retry-btn {
-            background: #2a5298;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 50px;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            margin-right: auto;
-        }
-
-        .retry-btn:hover {
-            background: #1e3c72;
-        }
     </style>
 </head>
 <body>
@@ -894,48 +741,16 @@
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Auto Load Status -->
-        <div class="auto-load-status">
-            <div class="status-header">
-                <i class="fas fa-cloud-download-alt"></i>
-                <h3>تحميل تلقائي للبيانات من GitHub</h3>
-            </div>
-            
-            <div class="loading-progress" id="loadingProgress">
-                <i class="fas fa-spinner fa-spin" style="color: #2a5298;"></i>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
-                </div>
-                <span class="progress-text" id="progressText">جاري الاتصال...</span>
-            </div>
-            
-            <div class="data-source-info" id="dataSourceInfo">
-                <i class="fab fa-github"></i>
-                <span>مصدر البيانات:</span>
-                <span class="file-path" id="filePath">/data/ext_list_Jan_2026.xlsx</span>
-            </div>
-            
-            <div id="loadError" class="error-message" style="display: none;">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span id="errorMessage"></span>
-                <button class="retry-btn" onclick="loadDataFromGitHub()">
-                    <i class="fas fa-redo"></i> إعادة المحاولة
-                </button>
-            </div>
+        <!-- Loading Status -->
+        <div class="loading-status" id="loadingStatus">
+            <div class="spinner"></div>
+            <p>جاري تحميل قاعدة بيانات المجلات...</p>
         </div>
 
-        <!-- Upload Section (Optional - for manual upload) -->
-        <div class="upload-section">
-            <div class="upload-area" id="uploadArea">
-                <i class="fas fa-file-excel"></i>
-                <h3>رفع يدوي (اختياري)</h3>
-                <p>يمكنك رفع ملف Excel يدوياً إذا أردت</p>
-                <div class="file-info">
-                    <i class="fas fa-info-circle"></i>
-                    ext_list_Jan_2026.xlsx
-                </div>
-                <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
-            </div>
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText"></span>
         </div>
 
         <!-- Database Stats -->
@@ -962,7 +777,7 @@
             </div>
         </div>
 
-        <!-- Search Section (Hidden until data loaded) -->
+        <!-- Search Section -->
         <div class="search-section" id="searchSection" style="display: none;">
             <!-- Search Tabs -->
             <div class="search-tabs">
@@ -1055,12 +870,6 @@
                 </div>
             </div>
 
-            <!-- Loading Spinner -->
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p style="color: white;">جاري تحميل البيانات...</p>
-            </div>
-
             <!-- Journals Grid -->
             <div class="journals-grid" id="journalsGrid">
                 <!-- Journal cards will be inserted here -->
@@ -1096,88 +905,56 @@
         // Global variables
         let scopusData = [];
         let filteredData = [];
-        let asjcCodes = new Map();
         let selectedASJC = new Set();
-        
-        // GitHub configuration - تعديل هذا حسب اسم المستخدم والمستودع الخاص بك
-        const GITHUB_CONFIG = {
-            username: 'your-username', // غير هذا إلى اسم المستخدم الخاص بك
-            repository: 'your-repo',    // غير هذا إلى اسم المستودع الخاص بك
-            filePath: 'data/ext_list_Jan_2026.xlsx'
-        };
         
         // ASJC Classification Codes
         const asjcClassification = {
-            '1000': 'Multidisciplinary',
-            '1100': 'Agricultural and Biological Sciences',
-            '1200': 'Arts and Humanities',
-            '1300': 'Biochemistry, Genetics and Molecular Biology',
-            '1400': 'Business, Management and Accounting',
-            '1500': 'Chemical Engineering',
-            '1600': 'Chemistry',
-            '1700': 'Computer Science',
-            '1800': 'Decision Sciences',
-            '1900': 'Earth and Planetary Sciences',
-            '2000': 'Economics, Econometrics and Finance',
-            '2100': 'Energy',
-            '2200': 'Engineering',
-            '2300': 'Environmental Science',
-            '2400': 'Immunology and Microbiology',
-            '2500': 'Materials Science',
-            '2600': 'Mathematics',
-            '2700': 'Medicine',
-            '2800': 'Neuroscience',
-            '2900': 'Nursing',
-            '3000': 'Pharmacology, Toxicology and Pharmaceutics',
-            '3100': 'Physics and Astronomy',
-            '3200': 'Psychology',
-            '3300': 'Social Sciences',
-            '3400': 'Veterinary',
-            '3500': 'Dentistry',
-            '3600': 'Health Professions'
+            '1000': 'متعدد التخصصات',
+            '1100': 'العلوم الزراعية والبيولوجية',
+            '1200': 'الفنون والعلوم الإنسانية',
+            '1300': 'الكيمياء الحيوية والوراثة والبيولوجيا الجزيئية',
+            '1400': 'الأعمال والإدارة والمحاسبة',
+            '1500': 'الهندسة الكيميائية',
+            '1600': 'الكيمياء',
+            '1700': 'علوم الحاسوب',
+            '1800': 'علوم القرار',
+            '1900': 'علوم الأرض والكواكب',
+            '2000': 'الاقتصاد والاقتصاد القياسي والمالية',
+            '2100': 'الطاقة',
+            '2200': 'الهندسة',
+            '2300': 'العلوم البيئية',
+            '2400': 'علم المناعة والميكروبيولوجيا',
+            '2500': 'علوم المواد',
+            '2600': 'الرياضيات',
+            '2700': 'الطب',
+            '2800': 'علم الأعصاب',
+            '2900': 'التمريض',
+            '3000': 'علم الأدوية والسموم والصيدلة',
+            '3100': 'الفيزياء وعلم الفلك',
+            '3200': 'علم النفس',
+            '3300': 'العلوم الاجتماعية',
+            '3400': 'البيطرة',
+            '3500': 'طب الأسنان',
+            '3600': 'المهن الصحية'
         };
 
         // Load data automatically when page loads
         window.addEventListener('load', function() {
-            // تحديث مسار الملف المعروض
-            document.getElementById('filePath').textContent = `/${GITHUB_CONFIG.filePath}`;
-            
-            // بدأ تحميل البيانات
-            loadDataFromGitHub();
+            loadData();
         });
 
-        async function loadDataFromGitHub() {
-            // إنشاء رابط Raw للملف على GitHub
-            const rawUrl = `https://raw.githubusercontent.com/${GITHUB_CONFIG.username}/${GITHUB_CONFIG.repository}/main/${GITHUB_CONFIG.filePath}`;
-            
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            const errorDiv = document.getElementById('loadError');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            // تحديث واجهة المستخدم
-            progressFill.style.width = '10%';
-            progressText.textContent = 'جاري الاتصال بـ GitHub...';
-            errorDiv.style.display = 'none';
+        async function loadData() {
+            const loadingStatus = document.getElementById('loadingStatus');
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
             
             try {
-                // تحميل الملف من GitHub
-                progressFill.style.width = '30%';
-                progressText.textContent = 'جاري تحميل الملف...';
-                
-                const response = await fetch(rawUrl, {
-                    mode: 'cors',
-                    headers: {
-                        'Accept': 'application/vnd.github.v3.raw'
-                    }
-                });
+                // محاولة تحميل الملف من المسار النسبي
+                const response = await fetch('data/ext_list_Jan_2026.xlsx');
                 
                 if (!response.ok) {
-                    throw new Error(`فشل التحميل: ${response.status} - ${response.statusText}`);
+                    throw new Error(`فشل تحميل الملف: ${response.status}`);
                 }
-
-                progressFill.style.width = '60%';
-                progressText.textContent = 'جاري قراءة البيانات...';
 
                 // قراءة الملف كـ ArrayBuffer
                 const arrayBuffer = await response.arrayBuffer();
@@ -1186,13 +963,10 @@
                 const data = new Uint8Array(arrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
                 
-                progressFill.style.width = '80%';
-                progressText.textContent = 'جاري معالجة البيانات...';
-                
                 // قراءة الشيت الرئيسي
                 const mainSheet = workbook.Sheets['Scopus Sources Jan. 2026'];
                 if (!mainSheet) {
-                    throw new Error('لم يتم العثور على الشيت الرئيسي. تأكد من اسم الملف.');
+                    throw new Error('لم يتم العثور على الشيت الرئيسي');
                 }
 
                 // تحويل البيانات إلى JSON
@@ -1214,32 +988,12 @@
                         }
                     });
                     
-                    // استخراج رموز ASJC
-                    const asjcCodes = [];
-                    for (let key in journal) {
-                        if (key.includes('ASJC') || (journal[key] && asjcClassification[journal[key].toString()])) {
-                            asjcCodes.push(journal[key]);
-                        }
-                    }
-                    journal.ASJC_Codes = asjcCodes;
-                    
                     scopusData.push(journal);
                 }
 
-                progressFill.style.width = '100%';
-                progressText.textContent = 'تم التحميل بنجاح!';
-
-                // تحديث واجهة المستخدم
-                setTimeout(() => {
-                    document.querySelector('.loading-progress').innerHTML = `
-                        <i class="fas fa-check-circle" style="color: #4caf50;"></i>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 100%; background: #4caf50;"></div>
-                        </div>
-                        <span class="progress-text" style="color: #4caf50;">تم تحميل ${scopusData.length.toLocaleString()} مصدر</span>
-                    `;
-                }, 500);
-
+                // إخفاء شاشة التحميل
+                loadingStatus.style.display = 'none';
+                
                 // إظهار الأقسام
                 document.getElementById('dbStats').style.display = 'grid';
                 document.getElementById('searchSection').style.display = 'block';
@@ -1256,14 +1010,14 @@
                 displayJournals();
 
             } catch (error) {
-                console.error('Error loading from GitHub:', error);
+                console.error('Error loading data:', error);
+                
+                // إخفاء شاشة التحميل
+                loadingStatus.style.display = 'none';
                 
                 // عرض رسالة الخطأ
-                errorMessage.textContent = `حدث خطأ في تحميل البيانات: ${error.message}`;
+                errorText.textContent = 'عذراً، حدث خطأ في تحميل البيانات. يرجى التأكد من وجود الملف في المسار الصحيح.';
                 errorDiv.style.display = 'flex';
-                
-                progressFill.style.width = '0%';
-                progressText.textContent = 'فشل التحميل';
                 
                 // تحديث إحصائية الحالة
                 document.getElementById('globalStats').innerHTML = `
@@ -1271,109 +1025,6 @@
                     <span>فشل تحميل البيانات</span>
                 `;
             }
-        }
-
-        // File upload handling (اختياري)
-        document.getElementById('uploadArea').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
-
-        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const loading = document.getElementById('loading');
-            loading.classList.add('active');
-            document.getElementById('uploadArea').innerHTML = '<i class="fas fa-spinner fa-spin"></i><h3>جاري قراءة الملف...</h3>';
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Read the main sheet (Scopus Sources Jan. 2026)
-                    const mainSheet = workbook.Sheets['Scopus Sources Jan. 2026'];
-                    if (!mainSheet) {
-                        alert('لم يتم العثور على الشيت الرئيسي. تأكد من اسم الملف.');
-                        return;
-                    }
-
-                    // Convert to JSON
-                    const jsonData = XLSX.utils.sheet_to_json(mainSheet, { header: 1 });
-                    
-                    // Get headers (first row)
-                    const headers = jsonData[0];
-                    
-                    // Process data (skip header row)
-                    scopusData = [];
-                    for (let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        if (row.length === 0) continue;
-                        
-                        const journal = {};
-                        headers.forEach((header, index) => {
-                            if (header && row[index] !== undefined) {
-                                journal[header] = row[index];
-                            }
-                        });
-                        
-                        // Extract ASJC codes
-                        const asjcCodes = [];
-                        for (let key in journal) {
-                            if (key.includes('ASJC') || (journal[key] && asjcClassification[journal[key].toString()])) {
-                                asjcCodes.push(journal[key]);
-                            }
-                        }
-                        journal.ASJC_Codes = asjcCodes;
-                        
-                        scopusData.push(journal);
-                    }
-
-                    // Update UI
-                    document.getElementById('uploadArea').innerHTML = `
-                        <i class="fas fa-check-circle" style="color: #4caf50;"></i>
-                        <h3>تم تحميل الملف بنجاح!</h3>
-                        <p>عدد المصادر: ${scopusData.length.toLocaleString()}</p>
-                        <div class="file-info">
-                            <i class="fas fa-redo"></i> اضغط لرفع ملف آخر
-                        </div>
-                    `;
-
-                    // Show sections
-                    document.getElementById('dbStats').style.display = 'grid';
-                    document.getElementById('searchSection').style.display = 'block';
-                    document.getElementById('resultsSection').style.display = 'block';
-                    loading.classList.remove('active');
-
-                    // Update stats
-                    updateStats();
-                    
-                    // Load ASJC tags
-                    loadASJCTags();
-                    
-                    // Display initial data
-                    filteredData = [...scopusData];
-                    displayJournals();
-
-                    // Update progress section
-                    document.querySelector('.loading-progress').innerHTML = `
-                        <i class="fas fa-check-circle" style="color: #4caf50;"></i>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 100%; background: #4caf50;"></div>
-                        </div>
-                        <span class="progress-text" style="color: #4caf50;">تم التحميل يدوياً - ${scopusData.length.toLocaleString()} مصدر</span>
-                    `;
-
-                } catch (error) {
-                    console.error('Error reading file:', error);
-                    alert('حدث خطأ في قراءة الملف. تأكد من صحة التنسيق.');
-                }
-            };
-
-            reader.readAsArrayBuffer(file);
         }
 
         function updateStats() {
@@ -1538,81 +1189,74 @@
 
         function displayJournals() {
             const grid = document.getElementById('journalsGrid');
-            const loading = document.getElementById('loading');
             
-            loading.classList.add('active');
-            
-            setTimeout(() => {
-                if (filteredData.length === 0) {
-                    grid.innerHTML = `
-                        <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: white; border-radius: 15px;">
-                            <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                            <h3 style="color: #666;">لا توجد نتائج</h3>
-                            <p style="color: #999;">حاول تعديل معايير البحث</p>
+            if (filteredData.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: white; border-radius: 15px;">
+                        <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <h3 style="color: #666;">لا توجد نتائج</h3>
+                        <p style="color: #999;">حاول تعديل معايير البحث</p>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = filteredData.map(journal => {
+                    const isActive = journal['Active or Inactive'] === 'Active';
+                    const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
+                    const cardClass = isDiscontinued ? 'discontinued' : (isActive ? '' : 'inactive');
+                    
+                    // Format ISSN and EISSN
+                    const issn = journal['ISSN'] || '';
+                    const eissn = journal['EISSN'] || '';
+                    
+                    return `
+                        <div class="journal-card ${cardClass}">
+                            <div class="journal-header">
+                                <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
+                                <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
+                                    ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
+                                </span>
+                            </div>
+                            
+                            <div class="journal-ids">
+                                ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
+                                ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
+                            </div>
+                            
+                            <div class="journal-publisher">
+                                <i class="fas fa-building"></i> ${journal['Publisher'] || 'ناشر غير معروف'}
+                            </div>
+                            
+                            <div class="journal-metrics">
+                                ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
+                                ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
+                                ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
+                            </div>
+                            
+                            ${journal['All Science Journal Classification Codes (ASJC)'] ? `
+                                <div class="asjc-list">
+                                    ${journal['All Science Journal Classification Codes (ASJC)'].split(';').slice(0, 3).map(code => 
+                                        `<span class="asjc-code">${code}</span>`
+                                    ).join('')}
+                                    ${journal['All Science Journal Classification Codes (ASJC)'].split(';').length > 3 ? 
+                                        `<span class="asjc-code">+${journal['All Science Journal Classification Codes (ASJC)'].split(';').length - 3}</span>` : ''}
+                                </div>
+                            ` : ''}
+                            
+                            <div class="journal-footer">
+                                <button class="btn btn-primary" onclick="showJournalDetails('${journal['Source Title'].replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-info-circle"></i> تفاصيل
+                                </button>
+                                <button class="btn btn-outline" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-copy"></i> نسخ
+                                </button>
+                            </div>
                         </div>
                     `;
-                } else {
-                    grid.innerHTML = filteredData.map(journal => {
-                        const isActive = journal['Active or Inactive'] === 'Active';
-                        const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
-                        const cardClass = isDiscontinued ? 'discontinued' : (isActive ? '' : 'inactive');
-                        
-                        // Format ISSN and EISSN with commas if multiple
-                        const issn = journal['ISSN'] || '';
-                        const eissn = journal['EISSN'] || '';
-                        
-                        return `
-                            <div class="journal-card ${cardClass}">
-                                <div class="journal-header">
-                                    <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
-                                    <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
-                                        ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
-                                    </span>
-                                </div>
-                                
-                                <div class="journal-ids">
-                                    ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
-                                    ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
-                                </div>
-                                
-                                <div class="journal-publisher">
-                                    <i class="fas fa-building"></i> ${journal['Publisher'] || 'ناشر غير معروف'}
-                                </div>
-                                
-                                <div class="journal-metrics">
-                                    ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
-                                    ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
-                                    ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
-                                </div>
-                                
-                                ${journal['All Science Journal Classification Codes (ASJC)'] ? `
-                                    <div class="asjc-list">
-                                        ${journal['All Science Journal Classification Codes (ASJC)'].split(';').slice(0, 3).map(code => 
-                                            `<span class="asjc-code">${code}</span>`
-                                        ).join('')}
-                                        ${journal['All Science Journal Classification Codes (ASJC)'].split(';').length > 3 ? 
-                                            `<span class="asjc-code">+${journal['All Science Journal Classification Codes (ASJC)'].split(';').length - 3}</span>` : ''}
-                                    </div>
-                                ` : ''}
-                                
-                                <div class="journal-footer">
-                                    <button class="btn btn-primary" onclick="showJournalDetails('${journal['Source Title'].replace(/'/g, "\\'")}')">
-                                        <i class="fas fa-info-circle"></i> تفاصيل
-                                    </button>
-                                    <button class="btn btn-outline" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
-                                        <i class="fas fa-copy"></i> نسخ
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
+                }).join('');
+            }
 
-                document.getElementById('resultsCount').textContent = 
-                    `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${scopusData.length.toLocaleString()}`;
-                
-                loading.classList.remove('active');
-            }, 100);
+            document.getElementById('resultsCount').textContent = 
+                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${scopusData.length.toLocaleString()}`;
         }
 
         window.showJournalDetails = (title) => {
