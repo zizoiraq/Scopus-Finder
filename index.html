@@ -24,7 +24,6 @@
             color: #333;
         }
 
-        /* Header */
         .header {
             background: rgba(255, 255, 255, 0.98);
             padding: 1rem 2rem;
@@ -104,31 +103,29 @@
             gap: 10px;
         }
 
-        /* Main Container */
         .main-container {
             max-width: 1400px;
             margin: 2rem auto;
             padding: 0 2rem;
         }
 
-        /* Loading Status */
-        .loading-status {
+        .loading-container {
             background: white;
             border-radius: 20px;
-            padding: 2rem;
+            padding: 3rem;
             margin-bottom: 2rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             text-align: center;
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #2a5298;
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #2a5298;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 1.5rem;
         }
 
         @keyframes spin {
@@ -136,24 +133,15 @@
             100% { transform: rotate(360deg); }
         }
 
-        .loading-status p {
+        .loading-container h2 {
+            color: #1e3c72;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-container p {
             color: #666;
-            font-size: 1.1rem;
         }
 
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            display: none;
-            align-items: center;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        /* Database Stats */
         .db-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -191,7 +179,6 @@
             font-size: 0.95rem;
         }
 
-        /* Search Section */
         .search-section {
             background: white;
             border-radius: 20px;
@@ -227,10 +214,6 @@
         .search-tab.active {
             background: #2a5298;
             color: white;
-        }
-
-        .search-tab i {
-            font-size: 1.2rem;
         }
 
         .search-box {
@@ -289,7 +272,6 @@
             box-shadow: 0 10px 20px rgba(42, 82, 152, 0.3);
         }
 
-        /* Filters */
         .filters-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -322,11 +304,6 @@
             font-size: 0.95rem;
             background: white;
             cursor: pointer;
-        }
-
-        .filter-select:focus {
-            outline: none;
-            border-color: #2a5298;
         }
 
         .asjc-search {
@@ -367,7 +344,6 @@
             border-color: #1e3c72;
         }
 
-        /* Results */
         .results-header {
             display: flex;
             justify-content: space-between;
@@ -397,7 +373,6 @@
             background: white;
         }
 
-        /* Journals Grid */
         .journals-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -412,7 +387,6 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             transition: all 0.3s;
             border-right: 4px solid #2a5298;
-            position: relative;
             height: fit-content;
         }
 
@@ -423,7 +397,6 @@
 
         .journal-card.inactive {
             border-right-color: #f44336;
-            opacity: 0.9;
         }
 
         .journal-card.discontinued {
@@ -573,7 +546,6 @@
             color: white;
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -643,7 +615,6 @@
             color: #666;
         }
 
-        /* Footer */
         .footer {
             background: rgba(0,0,0,0.3);
             backdrop-filter: blur(10px);
@@ -664,26 +635,32 @@
             color: #ffd700;
         }
 
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .journals-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .search-box {
-                flex-direction: column;
-            }
-            
-            .filters-grid {
-                grid-template-columns: 1fr;
-            }
+        .error-container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            display: none;
         }
 
-        /* Scroll to top button */
+        .error-container i {
+            font-size: 4rem;
+            color: #f44336;
+            margin-bottom: 1rem;
+        }
+
+        .error-container h2 {
+            color: #1e3c72;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-container p {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
         .scroll-top {
             position: fixed;
             bottom: 2rem;
@@ -706,15 +683,32 @@
             background: #1e3c72;
             transform: translateY(-5px);
         }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .journals-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Scroll to top button -->
     <div class="scroll-top" id="scrollTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
         <i class="fas fa-arrow-up"></i>
     </div>
 
-    <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -734,23 +728,27 @@
 
             <div class="stats-badge" id="globalStats">
                 <i class="fas fa-database"></i>
-                <span>جاري تحميل البيانات...</span>
+                <span>جاري التحميل...</span>
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
     <div class="main-container">
-        <!-- Loading Status -->
-        <div class="loading-status" id="loadingStatus">
+        <!-- Loading Screen -->
+        <div class="loading-container" id="loadingScreen">
             <div class="spinner"></div>
-            <p>جاري تحميل قاعدة بيانات المجلات...</p>
+            <h2>جاري تحميل قاعدة البيانات</h2>
+            <p>الرجاء الانتظار قليلاً...</p>
         </div>
 
-        <!-- Error Message -->
-        <div class="error-message" id="errorMessage">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span id="errorText"></span>
+        <!-- Error Screen -->
+        <div class="error-container" id="errorScreen">
+            <i class="fas fa-exclamation-circle"></i>
+            <h2>عذراً، حدث خطأ في التحميل</h2>
+            <p>لم نتمكن من العثور على ملف البيانات</p>
+            <button class="btn btn-primary" onclick="location.reload()">
+                <i class="fas fa-redo"></i> إعادة المحاولة
+            </button>
         </div>
 
         <!-- Database Stats -->
@@ -779,7 +777,6 @@
 
         <!-- Search Section -->
         <div class="search-section" id="searchSection" style="display: none;">
-            <!-- Search Tabs -->
             <div class="search-tabs">
                 <button class="search-tab active" id="tabJournals">
                     <i class="fas fa-book"></i> المجلات
@@ -792,7 +789,6 @@
                 </button>
             </div>
 
-            <!-- Search Box -->
             <div class="search-box">
                 <div class="search-input-wrapper">
                     <i class="fas fa-search"></i>
@@ -801,7 +797,6 @@
                 <button id="searchBtn"><i class="fas fa-search"></i> بحث</button>
             </div>
 
-            <!-- Advanced Filters -->
             <div class="filters-grid">
                 <div class="filter-group">
                     <label><i class="fas fa-power-off"></i> الحالة</label>
@@ -846,13 +841,10 @@
                 </div>
             </div>
 
-            <!-- ASJC Search -->
             <div class="asjc-search">
-                <label><i class="fas fa-tags"></i> تصنيف ASJC (اختر تخصصاً)</label>
+                <label><i class="fas fa-tags"></i> تصنيف ASJC</label>
                 <input type="text" id="asjcSearchInput" class="filter-select" placeholder="ابحث عن تخصص..." style="margin-top: 0.5rem;">
-                <div class="asjc-tags" id="asjcTags">
-                    <!-- ASJC tags will be loaded here -->
-                </div>
+                <div class="asjc-tags" id="asjcTags"></div>
             </div>
         </div>
 
@@ -870,10 +862,7 @@
                 </div>
             </div>
 
-            <!-- Journals Grid -->
-            <div class="journals-grid" id="journalsGrid">
-                <!-- Journal cards will be inserted here -->
-            </div>
+            <div class="journals-grid" id="journalsGrid"></div>
         </div>
     </div>
 
@@ -884,13 +873,10 @@
                 <h2><i class="fas fa-book-open"></i> تفاصيل المصدر</h2>
                 <button class="close-modal" id="closeModal">&times;</button>
             </div>
-            <div class="journal-detail" id="journalDetail">
-                <!-- Journal details will be inserted here -->
-            </div>
+            <div class="journal-detail" id="journalDetail"></div>
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
             <p>جميع البيانات مأخوذة من قاعدة Scopus الرسمية - تحديث يناير 2026</p>
@@ -902,11 +888,6 @@
     </footer>
 
     <script>
-        // Global variables
-        let scopusData = [];
-        let filteredData = [];
-        let selectedASJC = new Set();
-        
         // ASJC Classification Codes
         const asjcClassification = {
             '1000': 'متعدد التخصصات',
@@ -938,44 +919,43 @@
             '3600': 'المهن الصحية'
         };
 
-        // Load data automatically when page loads
+        // Global variables
+        let scopusData = [];
+        let filteredData = [];
+        let selectedASJC = new Set();
+
+        // Load data when page loads
         window.addEventListener('load', function() {
             loadData();
         });
 
         async function loadData() {
-            const loadingStatus = document.getElementById('loadingStatus');
-            const errorDiv = document.getElementById('errorMessage');
-            const errorText = document.getElementById('errorText');
+            const loadingScreen = document.getElementById('loadingScreen');
+            const errorScreen = document.getElementById('errorScreen');
             
             try {
-                // محاولة تحميل الملف من المسار النسبي
+                // محاولة تحميل الملف
                 const response = await fetch('data/ext_list_Jan_2026.xlsx');
                 
                 if (!response.ok) {
-                    throw new Error(`فشل تحميل الملف: ${response.status}`);
+                    throw new Error('File not found');
                 }
 
-                // قراءة الملف كـ ArrayBuffer
+                // قراءة الملف
                 const arrayBuffer = await response.arrayBuffer();
-                
-                // معالجة ملف Excel
                 const data = new Uint8Array(arrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
                 
-                // قراءة الشيت الرئيسي
+                // البحث عن الشيت الرئيسي
                 const mainSheet = workbook.Sheets['Scopus Sources Jan. 2026'];
                 if (!mainSheet) {
-                    throw new Error('لم يتم العثور على الشيت الرئيسي');
+                    throw new Error('Sheet not found');
                 }
 
-                // تحويل البيانات إلى JSON
+                // تحويل البيانات
                 const jsonData = XLSX.utils.sheet_to_json(mainSheet, { header: 1 });
-                
-                // استخراج headers (الصف الأول)
                 const headers = jsonData[0];
                 
-                // معالجة البيانات (تخطي صف headers)
                 scopusData = [];
                 for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i];
@@ -992,37 +972,30 @@
                 }
 
                 // إخفاء شاشة التحميل
-                loadingStatus.style.display = 'none';
+                loadingScreen.style.display = 'none';
                 
-                // إظهار الأقسام
+                // إظهار المحتوى
                 document.getElementById('dbStats').style.display = 'grid';
                 document.getElementById('searchSection').style.display = 'block';
                 document.getElementById('resultsSection').style.display = 'block';
 
                 // تحديث الإحصائيات
                 updateStats();
-                
-                // تحميل علامات ASJC
                 loadASJCTags();
                 
-                // عرض البيانات الأولية
                 filteredData = [...scopusData];
                 displayJournals();
 
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('Error:', error);
                 
-                // إخفاء شاشة التحميل
-                loadingStatus.style.display = 'none';
+                // إخفاء شاشة التحميل وإظهار شاشة الخطأ
+                loadingScreen.style.display = 'none';
+                errorScreen.style.display = 'block';
                 
-                // عرض رسالة الخطأ
-                errorText.textContent = 'عذراً، حدث خطأ في تحميل البيانات. يرجى التأكد من وجود الملف في المسار الصحيح.';
-                errorDiv.style.display = 'flex';
-                
-                // تحديث إحصائية الحالة
                 document.getElementById('globalStats').innerHTML = `
                     <i class="fas fa-exclamation-triangle"></i>
-                    <span>فشل تحميل البيانات</span>
+                    <span>فشل التحميل</span>
                 `;
             }
         }
@@ -1062,7 +1035,6 @@
                 selectedASJC.add(code);
             }
             
-            // Update UI
             document.querySelectorAll('.asjc-tag').forEach(tag => {
                 if (selectedASJC.has(tag.dataset.code)) {
                     tag.classList.add('selected');
@@ -1086,7 +1058,6 @@
         document.getElementById('topLevelFilter').addEventListener('change', performSearch);
         document.getElementById('sortSelect').addEventListener('change', performSearch);
 
-        // Search tabs
         document.getElementById('tabJournals').addEventListener('click', () => {
             setActiveTab('journals');
             performSearch();
@@ -1124,7 +1095,6 @@
             const tab = getActiveTab();
 
             filteredData = scopusData.filter(journal => {
-                // Search term
                 if (searchTerm) {
                     const title = (journal['Source Title'] || '').toLowerCase();
                     const issn = (journal['ISSN'] || '').toLowerCase();
@@ -1137,7 +1107,6 @@
                     }
                 }
 
-                // Status filter
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
                         if (!journal['Titles Discontinued by Scopus']) return false;
@@ -1146,26 +1115,22 @@
                     }
                 }
 
-                // OA filter
                 if (oa !== 'all') {
                     const isOA = journal['Open Access Status'] === 'OA';
                     if (oa === 'OA' && !isOA) return false;
                     if (oa === 'Non-OA' && isOA) return false;
                 }
 
-                // Language filter
                 if (lang !== 'all') {
                     const languages = journal['Article Language in Source (Three-Letter ISO Language Codes)'] || '';
                     if (!languages.includes(lang)) return false;
                 }
 
-                // Top level filter
                 if (topLevel !== 'all') {
                     const topLevelField = `Top level: ${topLevel}`;
                     if (!journal[topLevelField]) return false;
                 }
 
-                // ASJC filter
                 if (selectedASJC.size > 0) {
                     let hasASJC = false;
                     for (let code of selectedASJC) {
@@ -1177,7 +1142,6 @@
                     if (!hasASJC) return false;
                 }
 
-                // Source type filter (tab)
                 if (tab === 'journals' && journal['Source Type'] !== 'Journal') return false;
                 if (tab === 'conferences' && journal['Source Type'] !== 'Conference Proceeding') return false;
 
@@ -1204,7 +1168,6 @@
                     const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
                     const cardClass = isDiscontinued ? 'discontinued' : (isActive ? '' : 'inactive');
                     
-                    // Format ISSN and EISSN
                     const issn = journal['ISSN'] || '';
                     const eissn = journal['EISSN'] || '';
                     
@@ -1310,7 +1273,6 @@ EISSN: ${journal['EISSN'] || 'غير متوفر'}
             }
         });
 
-        // ASJC search
         document.getElementById('asjcSearchInput').addEventListener('input', (e) => {
             const search = e.target.value.toLowerCase();
             document.querySelectorAll('.asjc-tag').forEach(tag => {
@@ -1322,7 +1284,6 @@ EISSN: ${journal['EISSN'] || 'غير متوفر'}
             });
         });
 
-        // Close modal when clicking on close button
         document.querySelectorAll('.close-modal').forEach(btn => {
             btn.addEventListener('click', function() {
                 this.closest('.modal').classList.remove('active');
