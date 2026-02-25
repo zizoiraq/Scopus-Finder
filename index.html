@@ -154,6 +154,48 @@
             font-size: 0.9rem;
         }
 
+        .blacklist-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .blacklist-notice i {
+            font-size: 1.5rem;
+            color: #ffc107;
+        }
+        
+        .chunk-progress {
+            background: #e3f2fd;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            text-align: right;
+        }
+        
+        .chunk-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .chunk-item.loaded {
+            color: #28a745;
+            background: #f0fff0;
+        }
+        
+        .chunk-item i {
+            margin-left: 10px;
+        }
+
         .progress-container {
             background: white;
             border-radius: 20px;
@@ -730,7 +772,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            margin-top: 0.5rem;
+            margin: 0.5rem 0;
         }
 
         @media (max-width: 768px) {
@@ -788,10 +830,26 @@
             <div class="spinner"></div>
             <h2>جاري تحميل قاعدة البيانات</h2>
             <p id="loadingMessage">الرجاء الانتظار قليلاً...</p>
+            
+            <!-- إشعار القائمة السوداء -->
+            <div class="blacklist-notice">
+                <i class="fas fa-shield-alt"></i>
+                <div>
+                    <strong>ملاحظة مهمة:</strong> بسبب قيود GitHub على الملفات الكبيرة (القائمة السوداء)، تم تقسيم قاعدة البيانات إلى أجزاء صغيرة.
+                </div>
+            </div>
+            
+            <!-- تقدم تحميل الأجزاء -->
+            <div class="chunk-progress" id="chunkProgress">
+                <h4>📦 تقدم تحميل الأجزاء:</h4>
+                <div id="chunksList"></div>
+            </div>
+            
             <div class="loading-tips">
-                <p>💡 قد يستغرق التحميل بضع ثوانٍ في أول مرة</p>
-                <p>📚 نقوم بتحميل أكثر من 48,000 مصدر علمي</p>
-                <p>⚡ التحميل القادم سيكون أسرع (سيتم حفظ نسخة في المتصفح)</p>
+                <p>💡 يتم التحميل على عدة مراحل لتجنب مشكلة القائمة السوداء</p>
+                <p>📚 قاعدة البيانات تحتوي على 48,151 مصدر علمي</p>
+                <p>⚡ بعد التحميل الأول، سيتم حفظ نسخة في متصفحك للزيارات القادمة</p>
+                <p>🔄 إذا توقف التحميل، حدث الصفحة وسيستأنف من حيث توقف</p>
             </div>
         </div>
 
@@ -808,6 +866,9 @@
             <p>لم نتمكن من تحميل قاعدة البيانات</p>
             <button class="btn btn-primary" onclick="location.reload()">
                 <i class="fas fa-redo"></i> إعادة المحاولة
+            </button>
+            <button class="btn btn-outline" onclick="clearCacheAndReload()" style="margin-top: 1rem;">
+                <i class="fas fa-trash"></i> مسح الذاكرة المؤقتة وإعادة المحاولة
             </button>
         </div>
 
@@ -994,12 +1055,20 @@
             loadData();
         });
 
+        // دالة لمسح الذاكرة المؤقتة
+        window.clearCacheAndReload = function() {
+            localStorage.removeItem('scopusData');
+            localStorage.removeItem('scopusDataTime');
+            location.reload();
+        };
+
         async function loadData() {
             const loadingScreen = document.getElementById('loadingScreen');
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
             const errorScreen = document.getElementById('errorScreen');
+            const chunksList = document.getElementById('chunksList');
             
             try {
                 // أولاً: التحقق من وجود البيانات في localStorage
@@ -1030,73 +1099,88 @@
                     return;
                 }
                 
-                // إذا لم يكن هناك cache، نحمله من الملف
-                console.log('📥 تحميل البيانات من الملف...');
+                // إذا لم يكن هناك cache، نحمله من الملفات المقسمة
+                console.log('📥 تحميل البيانات المقسمة...');
                 
-                // إظهار شريط التقدم
-                loadingScreen.style.display = 'none';
-                progressContainer.style.display = 'block';
+                // تحميل ملف الفهرس أولاً
+                document.getElementById('loadingMessage').textContent = 'جاري تحميل معلومات الأجزاء...';
                 
-                // محاولة تحميل الملف المضغوط أولاً
-                let response = await fetch('data/scopus_data.min.json')
-                    .catch(() => fetch('data/scopus_data.json'));
+                // محاولة مسارات مختلفة
+                let indexResponse = await fetch('split_data/index.json')
+                    .catch(() => fetch('./split_data/index.json'))
+                    .catch(() => fetch('/split_data/index.json'));
                 
-                if (!response.ok) {
-                    // جرب مسار آخر
-                    response = await fetch('scopus_data.min.json')
-                        .catch(() => fetch('scopus_data.json'));
+                if (!indexResponse || !indexResponse.ok) {
+                    // إذا لم نجد الملفات المقسمة، نحاول الملف الكامل
+                    throw new Error('ملف الفهرس غير موجود، جرب الملف الكامل');
                 }
                 
-                if (!response.ok) {
-                    throw new Error('ملف البيانات غير موجود');
-                }
-
-                // عرض حجم الملف
-                const contentLength = response.headers.get('Content-Length');
-                if (contentLength) {
-                    const sizeMB = (parseInt(contentLength) / (1024 * 1024)).toFixed(2);
-                    progressText.textContent = `جاري التحميل (${sizeMB} MB)...`;
-                }
-
-                // تحميل مع مؤشر تقدم
-                const reader = response.body.getReader();
-                let receivedLength = 0;
-                let chunks = [];
+                const indexData = await indexResponse.json();
+                const totalChunks = indexData.total_chunks;
+                const chunkFiles = indexData.chunks;
                 
-                while(true) {
-                    const {done, value} = await reader.read();
+                // عرض تقدم التحميل
+                let chunksHtml = '';
+                for (let i = 0; i < totalChunks; i++) {
+                    chunksHtml += `
+                        <div class="chunk-item" id="chunk-${i+1}">
+                            <span><i class="fas fa-spinner fa-spin"></i> الجزء ${i+1}/${totalChunks}</span>
+                            <span>...</span>
+                        </div>
+                    `;
+                }
+                chunksList.innerHTML = chunksHtml;
+                
+                // تحميل الأجزاء
+                scopusData = [];
+                for (let i = 0; i < totalChunks; i++) {
+                    const chunkFile = chunkFiles[i];
+                    document.getElementById('loadingMessage').textContent = `جاري تحميل الجزء ${i+1} من ${totalChunks}...`;
                     
-                    if (done) break;
+                    const chunkResponse = await fetch(`split_data/${chunkFile}`)
+                        .catch(() => fetch(`./split_data/${chunkFile}`));
                     
-                    chunks.push(value);
-                    receivedLength += value.length;
-                    
-                    if (contentLength) {
-                        const percent = (receivedLength / parseInt(contentLength)) * 100;
-                        progressBar.style.width = percent + '%';
-                        progressText.textContent = Math.round(percent) + '%';
+                    if (!chunkResponse || !chunkResponse.ok) {
+                        console.warn(`⚠️ الجزء ${i+1} فشل تحميله، سيتم تخطيه`);
+                        const chunkElement = document.getElementById(`chunk-${i+1}`);
+                        if (chunkElement) {
+                            chunkElement.innerHTML = `
+                                <span><i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> الجزء ${i+1}/${totalChunks}</span>
+                                <span style="color: #ffc107;">⚠️ فشل</span>
+                            `;
+                        }
+                        continue;
                     }
+                    
+                    const chunkData = await chunkResponse.json();
+                    scopusData = scopusData.concat(chunkData);
+                    
+                    // تحديث واجهة التحميل
+                    const chunkElement = document.getElementById(`chunk-${i+1}`);
+                    if (chunkElement) {
+                        chunkElement.innerHTML = `
+                            <span><i class="fas fa-check-circle" style="color: #28a745;"></i> الجزء ${i+1}/${totalChunks}</span>
+                            <span style="color: #28a745;">✅ ${chunkData.length.toLocaleString()} سجل</span>
+                        `;
+                        chunkElement.classList.add('loaded');
+                    }
+                    
+                    // تحديث النسبة المئوية
+                    const percent = Math.round((i + 1) / totalChunks * 100);
+                    document.getElementById('loadingMessage').textContent = 
+                        `تم تحميل ${scopusData.length.toLocaleString()} سجل (${percent}%)`;
                 }
-
-                // تجميع البيانات
-                let chunksAll = new Uint8Array(receivedLength);
-                let position = 0;
-                for(let chunk of chunks) {
-                    chunksAll.set(chunk, position);
-                    position += chunk.length;
+                
+                if (scopusData.length === 0) {
+                    throw new Error('لم يتم تحميل أي بيانات');
                 }
-
-                // تحويل النص إلى JSON
-                progressText.textContent = 'جاري معالجة البيانات...';
-                const result = new TextDecoder("utf-8").decode(chunksAll);
-                scopusData = JSON.parse(result);
-
+                
                 // حفظ في localStorage للزيارات القادمة
                 localStorage.setItem('scopusData', JSON.stringify(scopusData));
                 localStorage.setItem('scopusDataTime', now.toString());
 
-                // إخفاء شريط التقدم
-                progressContainer.style.display = 'none';
+                // إخفاء شاشة التحميل
+                loadingScreen.style.display = 'none';
                 
                 // إظهار المحتوى
                 document.getElementById('dbStats').style.display = 'grid';
@@ -1111,16 +1195,54 @@
                 displayJournals();
 
             } catch (error) {
-                console.error('خطأ:', error);
+                console.error('خطأ في التحميل من الأجزاء:', error);
                 
-                loadingScreen.style.display = 'none';
-                progressContainer.style.display = 'none';
-                errorScreen.style.display = 'block';
-                
-                document.getElementById('globalStats').innerHTML = `
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>فشل التحميل</span>
-                `;
+                // محاولة التحميل من ملف واحد كحل أخير
+                try {
+                    document.getElementById('loadingMessage').textContent = 'محاولة التحميل من ملف واحد...';
+                    document.getElementById('chunkProgress').style.display = 'none';
+                    
+                    const response = await fetch('scopus_data.min.json')
+                        .catch(() => fetch('./scopus_data.min.json'))
+                        .catch(() => fetch('scopus_data.json'));
+                    
+                    if (!response || !response.ok) {
+                        throw new Error('الملف غير موجود');
+                    }
+                    
+                    scopusData = await response.json();
+                    
+                    if (scopusData.length === 0) {
+                        throw new Error('البيانات فارغة');
+                    }
+                    
+                    localStorage.setItem('scopusData', JSON.stringify(scopusData));
+                    localStorage.setItem('scopusDataTime', new Date().getTime().toString());
+                    
+                    loadingScreen.style.display = 'none';
+                    document.getElementById('dbStats').style.display = 'grid';
+                    document.getElementById('searchSection').style.display = 'block';
+                    document.getElementById('resultsSection').style.display = 'block';
+                    
+                    updateStats();
+                    loadASJCTags();
+                    
+                    filteredData = [...scopusData];
+                    displayJournals();
+                    return;
+                    
+                } catch (fallbackError) {
+                    console.error('فشل التحميل من ملف واحد أيضاً:', fallbackError);
+                    
+                    // إذا فشل كل شيء
+                    loadingScreen.style.display = 'none';
+                    errorScreen.style.display = 'block';
+                    
+                    document.getElementById('globalStats').innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>فشل التحميل</span>
+                    `;
+                }
             }
         }
 
@@ -1219,6 +1341,7 @@
             const tab = getActiveTab();
 
             filteredData = scopusData.filter(journal => {
+                // Search term filter
                 if (searchTerm) {
                     const title = (journal['Source Title'] || '').toLowerCase();
                     const issn = (journal['ISSN'] || '').toLowerCase();
@@ -1231,30 +1354,35 @@
                     }
                 }
 
+                // Status filter
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
-                        if (!journal['Titles Discontinued by Scopus']) return false;
+                        if (journal['Titles Discontinued by Scopus'] !== 'Yes') return false;
                     } else {
                         if ((journal['Active or Inactive'] || '') !== status) return false;
                     }
                 }
 
+                // Open Access filter
                 if (oa !== 'all') {
                     const isOA = journal['Open Access Status'] === 'OA';
                     if (oa === 'OA' && !isOA) return false;
                     if (oa === 'Non-OA' && isOA) return false;
                 }
 
+                // Language filter
                 if (lang !== 'all') {
                     const languages = journal['Article Language in Source (Three-Letter ISO Language Codes)'] || '';
                     if (!languages.includes(lang)) return false;
                 }
 
+                // Top level filter
                 if (topLevel !== 'all') {
                     const topLevelField = `Top level: ${topLevel}`;
                     if (!journal[topLevelField]) return false;
                 }
 
+                // ASJC filter
                 if (selectedASJC.size > 0) {
                     let hasASJC = false;
                     for (let code of selectedASJC) {
@@ -1266,6 +1394,7 @@
                     if (!hasASJC) return false;
                 }
 
+                // Source type filter (tab)
                 if (tab === 'journals' && journal['Source Type'] !== 'Journal') return false;
                 if (tab === 'conferences' && journal['Source Type'] !== 'Conference Proceeding') return false;
 
