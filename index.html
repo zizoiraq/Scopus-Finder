@@ -397,6 +397,12 @@
             box-shadow: 0 5px 20px rgba(220, 53, 69, 0.2);
         }
 
+        .journal-card.blacklist-only {
+            border-right-color: #dc3545;
+            background: #fff5f5;
+            border: 2px solid #dc3545;
+        }
+
         .journal-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 30px rgba(0,0,0,0.2);
@@ -1054,6 +1060,7 @@
                 updateStats();
                 loadASJCTags();
                 
+                // عرض جميع البيانات في البداية
                 filteredData = [...scopusData];
                 displayJournals();
 
@@ -1124,6 +1131,21 @@
             let bestMatch = null;
             let bestDistance = Infinity;
             
+            // البحث في القائمة السوداء أولاً
+            blacklistData.forEach(title => {
+                const titleLower = title.toLowerCase();
+                const distance = levenshteinDistance(searchLower, titleLower);
+                
+                if (distance < bestDistance && distance <= maxDistance) {
+                    bestDistance = distance;
+                    bestMatch = {
+                        title: title,
+                        type: 'blacklist',
+                        distance: distance
+                    };
+                }
+            });
+            
             // البحث في مجلات سكوباس
             scopusData.forEach(journal => {
                 const title = (journal['Source Title'] || '').toLowerCase();
@@ -1134,21 +1156,6 @@
                     bestMatch = {
                         title: journal['Source Title'],
                         type: 'scopus',
-                        distance: distance
-                    };
-                }
-            });
-            
-            // البحث في القائمة السوداء
-            blacklistData.forEach(title => {
-                const titleLower = title.toLowerCase();
-                const distance = levenshteinDistance(searchLower, titleLower);
-                
-                if (distance < bestDistance && distance <= maxDistance) {
-                    bestDistance = distance;
-                    bestMatch = {
-                        title: title,
-                        type: 'blacklist',
                         distance: distance
                     };
                 }
@@ -1257,7 +1264,7 @@
             return 'all';
         }
 
-        // تعديل دالة performSearch لتصبح ذكية
+        // دالة البحث المعدلة - تبحث في القائمة السوداء أولاً
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1270,53 +1277,96 @@
             document.getElementById('suggestionBox')?.remove();
             suggestedCorrection = null;
 
-            filteredData = scopusData.filter(journal => {
-                if (searchTerm) {
+            // أولاً: البحث في القائمة السوداء
+            let blacklistResults = [];
+            if (searchTerm && blacklistData.length > 0) {
+                const searchLower = searchTerm.toLowerCase();
+                blacklistResults = blacklistData.filter(blackTitle => {
+                    const titleLower = blackTitle.toLowerCase();
+                    // تطابق تام أو جزئي
+                    return titleLower.includes(searchLower) || 
+                           searchLower.includes(titleLower) ||
+                           levenshteinDistance(searchLower, titleLower) <= 3;
+                }).map(blackTitle => ({
+                    'Source Title': blackTitle,
+                    'Source Type': 'Journal',
+                    'Publisher': 'غير معروف (قائمة سوداء)',
+                    'Active or Inactive': 'Inactive',
+                    'Titles Discontinued by Scopus': 'No',
+                    'isBlacklisted': true,
+                    'fromBlacklist': true
+                }));
+            }
+
+            // ثانياً: البحث في سكوباس
+            let scopusResults = [];
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                scopusResults = scopusData.filter(journal => {
                     const title = (journal['Source Title'] || '').toLowerCase();
                     const issn = (journal['ISSN'] || '').toLowerCase();
                     const eissn = (journal['EISSN'] || '').toLowerCase();
                     const publisher = (journal['Publisher'] || '').toLowerCase();
-                    const searchLower = searchTerm.toLowerCase();
                     
-                    if (!title.includes(searchLower) && !issn.includes(searchLower) && 
-                        !eissn.includes(searchLower) && !publisher.includes(searchLower)) {
-                        
-                        // إذا لم يجد تطابق تام، نحاول البحث باقتراب (fuzzy search)
-                        const distance = levenshteinDistance(searchLower, title);
-                        if (distance > 3) { // إذا كانت المسافة أكبر من 3، نستبعد النتيجة
-                            return false;
-                        }
+                    // تطابق تام
+                    if (title.includes(searchLower) || issn.includes(searchLower) || 
+                        eissn.includes(searchLower) || publisher.includes(searchLower)) {
+                        return true;
                     }
-                }
+                    
+                    // تطابق تقريبي (fuzzy search)
+                    const distance = levenshteinDistance(searchLower, title);
+                    return distance <= 3;
+                }).map(journal => ({
+                    ...journal,
+                    'isBlacklisted': isInBlacklist(journal['Source Title']),
+                    'fromBlacklist': false
+                }));
+            } else {
+                // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس
+                scopusResults = scopusData.map(journal => ({
+                    ...journal,
+                    'isBlacklisted': isInBlacklist(journal['Source Title']),
+                    'fromBlacklist': false
+                }));
+            }
 
+            // دمج النتائج (القائمة السوداء أولاً)
+            filteredData = [...blacklistResults, ...scopusResults];
+
+            // تطبيق الفلاتر الأخرى على نتائج سكوباس فقط (وليس على القائمة السوداء)
+            filteredData = filteredData.filter(item => {
+                if (item.fromBlacklist) return true; // نتائج القائمة السوداء تظهر دائماً
+
+                // تطبيق الفلاتر على مجلات سكوباس فقط
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
-                        if (!journal['Titles Discontinued by Scopus']) return false;
+                        if (!item['Titles Discontinued by Scopus']) return false;
                     } else {
-                        if ((journal['Active or Inactive'] || '') !== status) return false;
+                        if ((item['Active or Inactive'] || '') !== status) return false;
                     }
                 }
 
                 if (oa !== 'all') {
-                    const isOA = journal['Open Access Status'] === 'OA';
+                    const isOA = item['Open Access Status'] === 'OA';
                     if (oa === 'OA' && !isOA) return false;
                     if (oa === 'Non-OA' && isOA) return false;
                 }
 
                 if (lang !== 'all') {
-                    const languages = journal['Article Language in Source (Three-Letter ISO Language Codes)'] || '';
+                    const languages = item['Article Language in Source (Three-Letter ISO Language Codes)'] || '';
                     if (!languages.includes(lang)) return false;
                 }
 
                 if (topLevel !== 'all') {
                     const topLevelField = `Top level: ${topLevel}`;
-                    if (!journal[topLevelField]) return false;
+                    if (!item[topLevelField]) return false;
                 }
 
                 if (selectedASJC.size > 0) {
                     let hasASJC = false;
                     for (let code of selectedASJC) {
-                        if (journal[code] || (journal['All Science Journal Classification Codes (ASJC)'] || '').includes(code)) {
+                        if (item[code] || (item['All Science Journal Classification Codes (ASJC)'] || '').includes(code)) {
                             hasASJC = true;
                             break;
                         }
@@ -1324,9 +1374,20 @@
                     if (!hasASJC) return false;
                 }
 
-                if (tab === 'journals' && journal['Source Type'] !== 'Journal') return false;
-                if (tab === 'conferences' && journal['Source Type'] !== 'Conference Proceeding') return false;
+                if (tab === 'journals' && item['Source Type'] !== 'Journal') return false;
+                if (tab === 'conferences' && item['Source Type'] !== 'Conference Proceeding') return false;
 
+                return true;
+            });
+
+            // إزالة التكرارات (إذا ظهرت نفس المجلة في القائمة السوداء وسكوباس)
+            const uniqueTitles = new Set();
+            filteredData = filteredData.filter(item => {
+                const title = item['Source Title'];
+                if (uniqueTitles.has(title)) {
+                    return false;
+                }
+                uniqueTitles.add(title);
                 return true;
             });
 
@@ -1360,14 +1421,19 @@
                 gap: 1rem;
             `;
             
+            const matchPercentage = Math.round((1 - suggestion.distance / Math.max(original.length, suggestion.title.length)) * 100);
+            
             suggestionBox.innerHTML = `
                 <div>
                     <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-left: 0.5rem;"></i>
                     <span>لم نعثر على "${original}"، هل تقصد: </span>
                     <strong style="color: #856404;">${suggestion.title}</strong>
                     <span style="color: #856404; font-size: 0.9rem; margin-right: 0.5rem;">
-                        (دقة التطابق: ${Math.round((1 - suggestion.distance / Math.max(original.length, suggestion.title.length)) * 100)}%)
+                        (دقة التطابق: ${matchPercentage}%)
                     </span>
+                    ${suggestion.type === 'blacklist' ? 
+                        '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في القائمة السوداء</span>' : 
+                        ''}
                 </div>
                 <div>
                     <button class="btn btn-primary" onclick="useSuggestedCorrection()" style="margin-left: 0.5rem;">
@@ -1406,10 +1472,20 @@
                 grid.innerHTML = filteredData.map(journal => {
                     const isActive = journal['Active or Inactive'] === 'Active';
                     const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
-                    const isBlacklisted = isInBlacklist(journal['Source Title']);
+                    const isBlacklisted = journal.isBlacklisted || journal.fromBlacklist;
                     
-                    let cardClass = isDiscontinued ? 'discontinued' : (isActive ? '' : 'inactive');
-                    if (isBlacklisted) cardClass += ' blacklisted';
+                    let cardClass = '';
+                    if (journal.fromBlacklist) {
+                        cardClass = 'blacklist-only';
+                    } else if (isDiscontinued) {
+                        cardClass = 'discontinued';
+                    } else if (!isActive) {
+                        cardClass = 'inactive';
+                    }
+                    
+                    if (isBlacklisted && !journal.fromBlacklist) {
+                        cardClass += ' blacklisted';
+                    }
                     
                     const issn = journal['ISSN'] || '';
                     const eissn = journal['EISSN'] || '';
@@ -1419,33 +1495,39 @@
                             ${isBlacklisted ? `
                                 <div class="blacklist-badge">
                                     <i class="fas fa-exclamation-triangle"></i>
-                                    في القائمة السوداء
+                                    ${journal.fromBlacklist ? 'مجلة وهمية - قائمة سوداء' : 'في القائمة السوداء'}
                                 </div>
                             ` : ''}
                             
                             <div class="journal-header">
                                 <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
-                                <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
-                                    ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
-                                </span>
+                                ${!journal.fromBlacklist ? `
+                                    <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
+                                        ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
+                                    </span>
+                                ` : ''}
                             </div>
                             
-                            <div class="journal-ids">
-                                ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
-                                ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
-                            </div>
+                            ${!journal.fromBlacklist ? `
+                                <div class="journal-ids">
+                                    ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
+                                    ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
+                                </div>
+                            ` : ''}
                             
                             <div class="journal-publisher">
                                 <i class="fas fa-building"></i> ${journal['Publisher'] || 'ناشر غير معروف'}
                             </div>
                             
-                            <div class="journal-metrics">
-                                ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
-                                ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
-                                ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
-                            </div>
+                            ${!journal.fromBlacklist ? `
+                                <div class="journal-metrics">
+                                    ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
+                                    ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
+                                    ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
+                                </div>
+                            ` : ''}
                             
-                            ${journal['All Science Journal Classification Codes (ASJC)'] ? `
+                            ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBlacklist ? `
                                 <div class="asjc-list">
                                     ${journal['All Science Journal Classification Codes (ASJC)'].split(';').slice(0, 3).map(code => 
                                         `<span class="asjc-code">${code}</span>`
@@ -1469,14 +1551,17 @@
             }
 
             document.getElementById('resultsCount').textContent = 
-                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${scopusData.length.toLocaleString()}`;
+                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${(scopusData.length + blacklistData.length).toLocaleString()}`;
         }
 
         window.showJournalDetails = (title) => {
-            const journal = scopusData.find(j => j['Source Title'] === title);
+            // البحث في القائمة السوداء أولاً
+            const blacklistJournal = blacklistData.includes(title) ? { 'Source Title': title, 'fromBlacklist': true } : null;
+            const journal = blacklistJournal || scopusData.find(j => j['Source Title'] === title);
+            
             if (!journal) return;
 
-            const isBlacklisted = isInBlacklist(title);
+            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
             const modal = document.getElementById('journalModal');
             const detailDiv = document.getElementById('journalDetail');
             
@@ -1486,19 +1571,36 @@
                 html += `
                     <div class="blacklist-warning">
                         <i class="fas fa-exclamation-triangle"></i>
-                        تحذير: هذه المجلة موجودة في القائمة السوداء للمجلات التجارية والمزيفة
+                        ⚠️ تحذير شديد: هذه المجلة موجودة في القائمة السوداء للمجلات التجارية والمزيفة التابعة لوزارة التعليم العالي العراقية
                     </div>
                 `;
             }
             
-            for (let [key, value] of Object.entries(journal)) {
-                if (value && key !== '') {
-                    html += `
-                        <div class="detail-row">
-                            <div class="detail-label">${key}:</div>
-                            <div class="detail-value">${value}</div>
-                        </div>
-                    `;
+            if (blacklistJournal) {
+                html += `
+                    <div class="detail-row">
+                        <div class="detail-label">اسم المجلة:</div>
+                        <div class="detail-value">${title}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">الحالة:</div>
+                        <div class="detail-value" style="color: #dc3545; font-weight: bold;">⚠️ في القائمة السوداء (مجلة وهمية)</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">تحذير:</div>
+                        <div class="detail-value" style="color: #dc3545;">هذه المجلة غير معتمدة ولا يمكن النشر فيها للت promotions العلمية</div>
+                    </div>
+                `;
+            } else {
+                for (let [key, value] of Object.entries(journal)) {
+                    if (value && key !== '') {
+                        html += `
+                            <div class="detail-row">
+                                <div class="detail-label">${key}:</div>
+                                <div class="detail-value">${value}</div>
+                            </div>
+                        `;
+                    }
                 }
             }
             
@@ -1507,22 +1609,34 @@
         };
 
         window.copyJournalInfo = (title) => {
+            // البحث في القائمة السوداء أولاً
+            const blacklistJournal = blacklistData.includes(title);
             const journal = scopusData.find(j => j['Source Title'] === title);
-            if (!journal) return;
             
-            const isBlacklisted = isInBlacklist(title);
-            const warning = isBlacklisted ? '⚠️ تحذير: هذه المجلة في القائمة السوداء!\n' : '';
+            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
             
-            const info = `
+            let info = '';
+            if (blacklistJournal) {
+                info = `
+⚠️ تحذير شديد: هذه المجلة في القائمة السوداء الرسمية!
+
+المجلة: ${title}
+الحالة: في القائمة السوداء (مجلة وهمية)
+تنبيه: لا يمكن الاعتماد عليها للنشر العلمي أو الترقيات
+                `;
+            } else if (journal) {
+                const warning = isBlacklisted ? '⚠️ تحذير: هذه المجلة في القائمة السوداء!\n' : '';
+                info = `
 ${warning}المجلة: ${journal['Source Title']}
 ISSN: ${journal['ISSN'] || 'غير متوفر'}
 EISSN: ${journal['EISSN'] || 'غير متوفر'}
 الناشر: ${journal['Publisher'] || 'غير معروف'}
 الحالة: ${journal['Active or Inactive'] || 'غير معروف'}
-            `;
+                `;
+            }
             
             navigator.clipboard.writeText(info).then(() => {
-                alert(isBlacklisted ? 'تم نسخ معلومات المجلة (تحذير: مجلة في القائمة السوداء)' : 'تم نسخ معلومات المجلة');
+                alert(isBlacklisted ? '⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في القائمة السوداء)' : 'تم نسخ معلومات المجلة');
             });
         };
 
@@ -1553,22 +1667,6 @@ EISSN: ${journal['EISSN'] || 'غير متوفر'}
                 this.closest('.modal').classList.remove('active');
             });
         });
-
-        // إضافة فلتر للقائمة السوداء
-        const filterGroup = document.querySelector('.filters-grid');
-        const blacklistFilter = document.createElement('div');
-        blacklistFilter.className = 'filter-group';
-        blacklistFilter.innerHTML = `
-            <label><i class="fas fa-ban"></i> القائمة السوداء</label>
-            <select class="filter-select" id="blacklistFilter">
-                <option value="all">الكل</option>
-                <option value="blacklisted">في القائمة السوداء فقط</option>
-                <option value="clean">خارج القائمة السوداء</option>
-            </select>
-        `;
-        filterGroup.appendChild(blacklistFilter);
-        
-        document.getElementById('blacklistFilter').addEventListener('change', performSearch);
     </script>
 </body>
 </html>
