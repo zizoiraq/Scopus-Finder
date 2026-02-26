@@ -995,11 +995,213 @@
 
         // Global variables
         let scopusData = [];
-        let beallList = []; // Renamed from blacklistData
+        let beallList = [];
         let filteredData = [];
         let selectedASJC = new Set();
         let previousSearchTerm = '';
         let suggestedCorrection = null;
+
+        // ================ دوال البحث الذكي ================
+
+        /**
+         * حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
+         */
+        function levenshteinDistance(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) {
+                matrix[i] = [i];
+            }
+            for (let j = 0; j <= a.length; j++) {
+                matrix[0][j] = j;
+            }
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        /**
+         * حساب التشابه النسبي بين سلسلتين (0-1)
+         * حيث 1 يعني تطابق تام، 0 يعني لا يوجد تشابه
+         */
+        function calculateSimilarity(str1, str2) {
+            if (!str1 || !str2) return 0;
+            
+            const s1 = str1.toLowerCase().trim();
+            const s2 = str2.toLowerCase().trim();
+            
+            if (s1 === s2) return 1;
+            if (s1.length === 0 || s2.length === 0) return 0;
+            
+            const distance = levenshteinDistance(s1, s2);
+            const maxLength = Math.max(s1.length, s2.length);
+            
+            // التشابه النسبي (1 - (المسافة / الطول الأكبر))
+            return 1 - (distance / maxLength);
+        }
+
+        /**
+         * حساب تشابه bigram بين سلسلتين
+         * Bigrams هي أزواج متتالية من الأحرف
+         */
+        function bigramSimilarity(str1, str2) {
+            const s1 = str1.toLowerCase().trim();
+            const s2 = str2.toLowerCase().trim();
+            
+            if (s1 === s2) return 1;
+            if (s1.length < 2 || s2.length < 2) return 0;
+            
+            // إنشاء bigrams
+            const getBigrams = (str) => {
+                const bigrams = new Set();
+                for (let i = 0; i < str.length - 1; i++) {
+                    bigrams.add(str.substring(i, i + 2));
+                }
+                return bigrams;
+            };
+            
+            const bigrams1 = getBigrams(s1);
+            const bigrams2 = getBigrams(s2);
+            
+            // حساب التقاطع
+            let intersection = 0;
+            for (let bigram of bigrams1) {
+                if (bigrams2.has(bigram)) intersection++;
+            }
+            
+            // معامل جاكارد (Jaccard coefficient)
+            const union = bigrams1.size + bigrams2.size - intersection;
+            return union === 0 ? 0 : intersection / union;
+        }
+
+        /**
+         * حساب تشابه الكلمات الرئيسية
+         * يقسم النص إلى كلمات ويبحث عن الكلمات المشتركة
+         */
+        function tokenMatchSimilarity(str1, str2) {
+            const s1 = str1.toLowerCase().trim();
+            const s2 = str2.toLowerCase().trim();
+            
+            // كلمات شائعة يتم تجاهلها
+            const stopWords = new Set(['the', 'and', 'of', 'in', 'on', 'at', 'for', 'to', 'with', 'journal', 'international', 'review', 'research', 'science', 'sciences', 'technology', 'engineering', 'medical', 'medicine', 'health', 'clinical', 'scientific', 'advances', 'current', 'journal', 'review', 'letters', 'communications', 'proceedings', 'transactions', 'archives', 'annals', 'acta']);
+            
+            const tokens1 = s1.split(/\W+/).filter(t => t.length > 2 && !stopWords.has(t));
+            const tokens2 = s2.split(/\W+/).filter(t => t.length > 2 && !stopWords.has(t));
+            
+            if (tokens1.length === 0 || tokens2.length === 0) return 0;
+            
+            // حساب الكلمات المتطابقة
+            let matches = 0;
+            for (let token1 of tokens1) {
+                for (let token2 of tokens2) {
+                    if (token1 === token2 || 
+                        token1.includes(token2) || 
+                        token2.includes(token1) ||
+                        levenshteinDistance(token1, token2) <= 2) {
+                        matches++;
+                        break;
+                    }
+                }
+            }
+            
+            // متوسط التطابق بين المجموعتين
+            const score1 = matches / tokens1.length;
+            const score2 = matches / tokens2.length;
+            
+            return (score1 + score2) / 2;
+        }
+
+        /**
+         * دالة البحث الذكي الموحدة
+         */
+        function smartMatch(searchTerm, targetTitle) {
+            if (!searchTerm || !targetTitle) return 0;
+            
+            const s1 = searchTerm.toLowerCase().trim();
+            const s2 = targetTitle.toLowerCase().trim();
+            
+            // 1. تطابق تام
+            if (s1 === s2) return 1;
+            
+            // 2. احتواء (الوضع الحالي)
+            if (s2.includes(s1) || s1.includes(s2)) return 0.95;
+            
+            // 3. حساب جميع مقاييس التشابه
+            const similarity = calculateSimilarity(s1, s2);
+            const bigramScore = bigramSimilarity(s1, s2);
+            const tokenScore = tokenMatchSimilarity(s1, s2);
+            
+            // 4. الترجيح المرجح (Weighted average)
+            const weights = {
+                similarity: 0.5,    // المسافة النسبية لها الوزن الأكبر
+                bigram: 0.3,        // Bigrams مفيدة للكلمات المتشابهة
+                token: 0.2          // الكلمات الرئيسية مفيدة للعناوين الطويلة
+            };
+            
+            const finalScore = (similarity * weights.similarity) + 
+                               (bigramScore * weights.bigram) + 
+                               (tokenScore * weights.token);
+            
+            return finalScore;
+        }
+
+        /**
+         * دالة findClosestMatch المعدلة - تبحث عن أفضل تطابق ذكي
+         */
+        function findClosestMatch(searchTerm, minSimilarity = 0.3) {
+            if (!searchTerm || searchTerm.length < 2) return null;
+            
+            const searchLower = searchTerm.toLowerCase().trim();
+            let bestMatch = null;
+            let bestScore = 0;
+            
+            // البحث في قائمة بيل أولاً
+            beallList.forEach(title => {
+                const score = smartMatch(searchTerm, title);
+                if (score > bestScore && score >= minSimilarity) {
+                    bestScore = score;
+                    bestMatch = {
+                        title: title,
+                        type: 'beall',
+                        score: score,
+                        distance: levenshteinDistance(searchLower, title.toLowerCase())
+                    };
+                }
+            });
+            
+            // البحث في مجلات سكوباس
+            scopusData.forEach(journal => {
+                const title = journal['Source Title'] || '';
+                const score = smartMatch(searchTerm, title);
+                if (score > bestScore && score >= minSimilarity) {
+                    bestScore = score;
+                    bestMatch = {
+                        title: title,
+                        type: 'scopus',
+                        score: score,
+                        distance: levenshteinDistance(searchLower, title.toLowerCase())
+                    };
+                }
+            });
+            
+            return bestMatch;
+        }
+
+        // ================ دوال التحميل والبيانات ================
 
         // Load data when page loads
         window.addEventListener('load', function() {
@@ -1080,7 +1282,7 @@
         // Function to load Beall's List
         async function loadBeallList() {
             try {
-                const response = await fetch('data/beall_list.json'); // Make sure this file exists
+                const response = await fetch('data/beall_list.json');
                 if (!response.ok) {
                     console.warn('Beall list file not found');
                     beallList = [];
@@ -1092,76 +1294,6 @@
                 console.error('Error loading Beall list:', error);
                 beallList = [];
             }
-        }
-
-        // Function to calculate Levenshtein distance
-        function levenshteinDistance(a, b) {
-            if (a.length === 0) return b.length;
-            if (b.length === 0) return a.length;
-
-            const matrix = [];
-            for (let i = 0; i <= b.length; i++) {
-                matrix[i] = [i];
-            }
-            for (let j = 0; j <= a.length; j++) {
-                matrix[0][j] = j;
-            }
-
-            for (let i = 1; i <= b.length; i++) {
-                for (let j = 1; j <= a.length; j++) {
-                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                        matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            matrix[i][j - 1] + 1,
-                            matrix[i - 1][j] + 1
-                        );
-                    }
-                }
-            }
-            return matrix[b.length][a.length];
-        }
-
-        // Function to find closest match with spelling correction
-        function findClosestMatch(searchTerm, maxDistance = 3) {
-            if (!searchTerm || searchTerm.length < 3) return null;
-            
-            const searchLower = searchTerm.toLowerCase();
-            let bestMatch = null;
-            let bestDistance = Infinity;
-            
-            // Search in Beall's list first
-            beallList.forEach(title => {
-                const titleLower = title.toLowerCase();
-                const distance = levenshteinDistance(searchLower, titleLower);
-                
-                if (distance < bestDistance && distance <= maxDistance) {
-                    bestDistance = distance;
-                    bestMatch = {
-                        title: title,
-                        type: 'beall',
-                        distance: distance
-                    };
-                }
-            });
-            
-            // Search in Scopus journals
-            scopusData.forEach(journal => {
-                const title = (journal['Source Title'] || '').toLowerCase();
-                const distance = levenshteinDistance(searchLower, title);
-                
-                if (distance < bestDistance && distance <= maxDistance) {
-                    bestDistance = distance;
-                    bestMatch = {
-                        title: journal['Source Title'],
-                        type: 'scopus',
-                        distance: distance
-                    };
-                }
-            });
-            
-            return bestMatch;
         }
 
         // Function to check if a journal is in Beall's list
@@ -1264,7 +1396,9 @@
             return 'all';
         }
 
-        // Modified search function - searches Beall's list first
+        /**
+         * دالة البحث المعدلة - تبحث في قائمة بيل وسكوباس
+         */
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1273,72 +1407,70 @@
             const topLevel = document.getElementById('topLevelFilter').value;
             const tab = getActiveTab();
 
-            // Hide previous suggestion
+            // إخفاء اقتراح التصحيح السابق
             document.getElementById('suggestionBox')?.remove();
             suggestedCorrection = null;
 
-            // First: Search in Beall's list
+            // البحث الذكي في كل من Beall's list و Scopus
             let beallResults = [];
-            if (searchTerm && beallList.length > 0) {
-                const searchLower = searchTerm.toLowerCase();
-                beallResults = beallList.filter(beallTitle => {
-                    const titleLower = beallTitle.toLowerCase();
-                    // Exact or partial match
-                    return titleLower.includes(searchLower) || 
-                           searchLower.includes(titleLower) ||
-                           levenshteinDistance(searchLower, titleLower) <= 3;
-                }).map(beallTitle => ({
-                    'Source Title': beallTitle,
-                    'Source Type': 'Journal',
-                    'Publisher': 'غير معروف (قائمة بيل)',
-                    'Active or Inactive': 'Inactive',
-                    'Titles Discontinued by Scopus': 'No',
-                    'isInBeallList': true,
-                    'fromBeallList': true
-                }));
-            }
-
-            // Second: Search in Scopus
             let scopusResults = [];
+
             if (searchTerm) {
                 const searchLower = searchTerm.toLowerCase();
-                scopusResults = scopusData.filter(journal => {
-                    const title = (journal['Source Title'] || '').toLowerCase();
-                    const issn = (journal['ISSN'] || '').toLowerCase();
-                    const eissn = (journal['EISSN'] || '').toLowerCase();
-                    const publisher = (journal['Publisher'] || '').toLowerCase();
-                    
-                    // Exact match
-                    if (title.includes(searchLower) || issn.includes(searchLower) || 
-                        eissn.includes(searchLower) || publisher.includes(searchLower)) {
-                        return true;
-                    }
-                    
-                    // Fuzzy match
-                    const distance = levenshteinDistance(searchLower, title);
-                    return distance <= 3;
-                }).map(journal => ({
-                    ...journal,
-                    'isInBeallList': isInBeallList(journal['Source Title']),
-                    'fromBeallList': false
-                }));
+                const minSimilarity = 0.3; // يمكن تعديل هذه القيمة
+                
+                // البحث الذكي في Beall's list
+                if (beallList.length > 0) {
+                    beallResults = beallList
+                        .map(title => ({
+                            title: title,
+                            score: smartMatch(searchTerm, title)
+                        }))
+                        .filter(item => item.score >= minSimilarity)
+                        .sort((a, b) => b.score - a.score)
+                        .map(item => ({
+                            'Source Title': item.title,
+                            'Source Type': 'Journal',
+                            'Publisher': 'غير معروف (قائمة بيل)',
+                            'Active or Inactive': 'Inactive',
+                            'Titles Discontinued by Scopus': 'No',
+                            'isInBeallList': true,
+                            'fromBeallList': true,
+                            'matchScore': item.score
+                        }));
+                }
+                
+                // البحث الذكي في Scopus
+                scopusResults = scopusData
+                    .map(journal => ({
+                        journal: journal,
+                        score: smartMatch(searchTerm, journal['Source Title'] || '')
+                    }))
+                    .filter(item => item.score >= minSimilarity)
+                    .sort((a, b) => b.score - a.score)
+                    .map(item => ({
+                        ...item.journal,
+                        'isInBeallList': isInBeallList(item.journal['Source Title']),
+                        'fromBeallList': false,
+                        'matchScore': item.score
+                    }));
             } else {
-                // If no search term, show all Scopus journals
+                // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس
                 scopusResults = scopusData.map(journal => ({
                     ...journal,
                     'isInBeallList': isInBeallList(journal['Source Title']),
-                    'fromBeallList': false
+                    'fromBeallList': false,
+                    'matchScore': 1
                 }));
             }
 
-            // Merge results (Beall's list first)
+            // دمج النتائج (قائمة بيل أولاً)
             filteredData = [...beallResults, ...scopusResults];
 
-            // Apply other filters to Scopus results only (not to Beall's list)
+            // تطبيق الفلاتر الأخرى على نتائج سكوباس فقط
             filteredData = filteredData.filter(item => {
-                if (item.fromBeallList) return true; // Beall's list results always show
+                if (item.fromBeallList) return true; // نتائج قائمة بيل تظهر دائماً
 
-                // Apply filters to Scopus journals only
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
                         if (!item['Titles Discontinued by Scopus']) return false;
@@ -1380,7 +1512,7 @@
                 return true;
             });
 
-            // Remove duplicates (if the same journal appears in both Beall's list and Scopus)
+            // إزالة التكرارات
             const uniqueTitles = new Set();
             filteredData = filteredData.filter(item => {
                 const title = item['Source Title'];
@@ -1391,9 +1523,14 @@
                 return true;
             });
 
-            // If no results and possible spelling mistake
+            // ترتيب حسب درجة المطابقة (إذا كان هناك بحث)
+            if (searchTerm) {
+                filteredData.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+            }
+
+            // إذا لم توجد نتائج، نبحث عن أقرب تطابق
             if (filteredData.length === 0 && searchTerm.length >= 3) {
-                const closestMatch = findClosestMatch(searchTerm);
+                const closestMatch = findClosestMatch(searchTerm, 0.3);
                 if (closestMatch) {
                     suggestedCorrection = closestMatch;
                     showSpellingSuggestion(searchTerm, closestMatch);
@@ -1403,7 +1540,9 @@
             displayJournals();
         }
 
-        // Function to show spelling suggestion
+        /**
+         * دالة عرض اقتراح التصحيح
+         */
         function showSpellingSuggestion(original, suggestion) {
             const searchSection = document.querySelector('.search-section');
             const suggestionBox = document.createElement('div');
@@ -1421,7 +1560,7 @@
                 gap: 1rem;
             `;
             
-            const matchPercentage = Math.round((1 - suggestion.distance / Math.max(original.length, suggestion.title.length)) * 100);
+            const similarityPercent = Math.round(suggestion.score * 100);
             
             suggestionBox.innerHTML = `
                 <div>
@@ -1429,7 +1568,7 @@
                     <span>لم نعثر على "${original}"، هل تقصد: </span>
                     <strong style="color: #856404;">${suggestion.title}</strong>
                     <span style="color: #856404; font-size: 0.9rem; margin-right: 0.5rem;">
-                        (دقة التطابق: ${matchPercentage}%)
+                        (نسبة التطابق: ${similarityPercent}%)
                     </span>
                     ${suggestion.type === 'beall' ? 
                         '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في قائمة بيل</span>' : 
@@ -1473,6 +1612,7 @@
                     const isActive = journal['Active or Inactive'] === 'Active';
                     const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
                     const isInBeall = journal.isInBeallList || journal.fromBeallList;
+                    const matchScore = journal.matchScore ? Math.round(journal.matchScore * 100) : null;
                     
                     let cardClass = '';
                     if (journal.fromBeallList) {
@@ -1507,6 +1647,12 @@
                                     </span>
                                 ` : ''}
                             </div>
+                            
+                            ${matchScore ? `
+                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-line"></i> نسبة المطابقة: ${matchScore}%
+                                </div>
+                            ` : ''}
                             
                             ${!journal.fromBeallList ? `
                                 <div class="journal-ids">
@@ -1555,7 +1701,7 @@
         }
 
         window.showJournalDetails = (title) => {
-            // Search in Beall's list first
+            // البحث في قائمة بيل أولاً
             const beallJournal = beallList.includes(title) ? { 'Source Title': title, 'fromBeallList': true } : null;
             const journal = beallJournal || scopusData.find(j => j['Source Title'] === title);
             
@@ -1609,7 +1755,7 @@
         };
 
         window.copyJournalInfo = (title) => {
-            // Search in Beall's list first
+            // البحث في قائمة بيل أولاً
             const beallJournal = beallList.includes(title);
             const journal = scopusData.find(j => j['Source Title'] === title);
             
