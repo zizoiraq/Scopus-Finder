@@ -345,15 +345,15 @@
             border-color: #1e3c72;
         }
 
-        /* رسالة التحديث السنوي - كبيرة وواضحة */
-        .update-message {
+        /* رسالة الحالة العامة - ديناميكية */
+        .status-message {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1rem 2rem;
             border-radius: 50px;
             margin-bottom: 1.5rem;
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -361,15 +361,25 @@
             gap: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             border: 2px solid #ffd700;
+            transition: all 0.3s ease;
         }
 
-        .update-message i {
+        .status-message.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-color: #ffd700;
+        }
+
+        .status-message.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            border-color: #dc3545;
+        }
+
+        .status-message i {
             font-size: 1.8rem;
             color: #ffd700;
         }
 
-        .update-message .warning-icon {
-            color: #ffd700;
+        .status-message .warning-icon {
             animation: bell-ring 2s infinite;
         }
 
@@ -377,61 +387,6 @@
             0%, 100% { transform: rotate(0); }
             10%, 30%, 50%, 70%, 90% { transform: rotate(10deg); }
             20%, 40%, 60%, 80% { transform: rotate(-10deg); }
-        }
-
-        .update-badge {
-            background: #ffd700;
-            color: #1e3c72;
-            padding: 0.3rem 1rem;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            margin-right: 10px;
-        }
-
-        /* رسالة خاصة بالمجلة داخل البطاقة */
-        .coverage-status {
-            font-size: 0.85rem;
-            padding: 0.4rem 1rem;
-            border-radius: 50px;
-            margin: 0.5rem 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            width: fit-content;
-        }
-
-        .coverage-current {
-            background: #e3f2fd;
-            color: #0d47a1;
-            border: 2px solid #2196f3;
-        }
-
-        .coverage-warning {
-            background: #fff3e0;
-            color: #e65100;
-            border: 2px solid #ff9800;
-            animation: pulse-warning 2s infinite;
-        }
-
-        .coverage-expired {
-            background: #ffebee;
-            color: #c62828;
-            border: 2px solid #f44336;
-            animation: pulse-danger 2s infinite;
-        }
-
-        @keyframes pulse-warning {
-            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
-        }
-
-        @keyframes pulse-danger {
-            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
         }
 
         .results-header {
@@ -1018,10 +973,10 @@
 
         <!-- Search Section -->
         <div class="search-section" id="searchSection" style="display: none;">
-            <!-- رسالة التحديث السنوي - كبيرة وواضحة -->
-            <div class="update-message" id="updateMessage">
-                <i class="fas fa-calendar-alt"></i>
-                <span>📢 آخر سنتين للتغطية في سكوباس: <span class="update-badge">2025-2026</span></span>
+            <!-- رسالة الحالة الديناميكية -->
+            <div class="status-message" id="statusMessage">
+                <i class="fas fa-check-circle"></i>
+                <span id="statusMessageText">جاري التحميل...</span>
                 <i class="fas fa-bell warning-icon"></i>
             </div>
 
@@ -1243,6 +1198,7 @@
                 
                 // عرض جميع البيانات في البداية
                 filteredData = [...scopusData];
+                updateStatusMessage(''); // رسالة افتراضية
                 displayJournals();
 
             } catch (error) {
@@ -1254,6 +1210,58 @@
                 document.getElementById('globalStats').innerHTML = `
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>فشل التحميل</span>
+                `;
+            }
+        }
+
+        // دالة تحديث رسالة الحالة
+        function updateStatusMessage(searchTerm) {
+            const statusMessage = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusMessageText');
+            
+            if (!searchTerm || searchTerm.trim() === '') {
+                // لا يوجد بحث - رسالة عامة
+                statusMessage.className = 'status-message';
+                statusMessage.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    <span id="statusMessageText">المجلات المقبولة هي المفهرسة في سكوباس وغير الموجودة في قائمة بيل أو القائمة السوداء للمجلات التجارية والمزيفة</span>
+                    <i class="fas fa-bell warning-icon"></i>
+                `;
+            } else {
+                // هناك بحث - سنحدث الرسالة بعد عرض النتائج
+                // سيتم استدعاء هذه الدالة مرة أخرى من performSearch بعد التصفية
+            }
+        }
+
+        // دالة تحديث رسالة البحث
+        function updateSearchStatusMessage(searchTerm, hasResults, anyInRecentYears) {
+            const statusMessage = document.getElementById('statusMessage');
+            
+            if (hasResults) {
+                if (anyInRecentYears) {
+                    // يوجد نتائج وبعضها في 2025-2026
+                    statusMessage.className = 'status-message success';
+                    statusMessage.innerHTML = `
+                        <i class="fas fa-check-circle"></i>
+                        <span id="statusMessageText">✓ المجلة موجودة في سكوباس للأعوام 2025-2026</span>
+                        <i class="fas fa-check-circle"></i>
+                    `;
+                } else {
+                    // يوجد نتائج لكن لا يوجد أي منها في 2025-2026
+                    statusMessage.className = 'status-message warning';
+                    statusMessage.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="statusMessageText">⚠️ المجلة غير مدرجة في سكوباس للعامين 2025-2026</span>
+                        <i class="fas fa-exclamation-triangle"></i>
+                    `;
+                }
+            } else {
+                // لا توجد نتائج للبحث
+                statusMessage.className = 'status-message warning';
+                statusMessage.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="statusMessageText">⚠️ لا توجد مجلة بهذا الاسم في قاعدة البيانات</span>
+                    <i class="fas fa-exclamation-triangle"></i>
                 `;
             }
         }
@@ -1638,6 +1646,11 @@
 
             console.log('Searching for:', searchTerm);
 
+            // تحديث الرسالة العامة إذا لم يكن هناك بحث
+            if (!searchTerm) {
+                updateStatusMessage('');
+            }
+
             // أولاً: البحث في قائمة بيل
             let beallResults = [];
             if (searchTerm && beallListData.length > 0) {
@@ -1761,6 +1774,19 @@
 
             console.log(`Found ${filteredData.length} results`);
 
+            // تحديث رسالة البحث إذا كان هناك مصطلح بحث
+            if (searchTerm) {
+                // التحقق من وجود نتائج
+                const hasResults = filteredData.length > 0;
+                
+                // التحقق من وجود أي مجلة في السنتين الأخيرتين (من نتائج سكوباس فقط)
+                const anyInRecentYears = filteredData.some(item => 
+                    !item.fromBeallList && !item.fromBlacklist && isInRecentYears(item)
+                );
+                
+                updateSearchStatusMessage(searchTerm, hasResults, anyInRecentYears);
+            }
+
             // إذا لم توجد نتائج وكان هناك خطأ إملائي محتمل
             if (filteredData.length === 0 && searchTerm.length >= 3) {
                 const closestMatch = findClosestMatch(searchTerm);
@@ -1830,30 +1856,6 @@
                         `;
                     }
                     
-                    // التحقق من وجود المجلة في السنتين الأخيرتين
-                    const inRecentYears = !journal.fromBeallList && !journal.fromBlacklist ? isInRecentYears(journal) : false;
-                    const lastYear = !journal.fromBeallList && !journal.fromBlacklist ? getLastCoverageYear(journal['Coverage']) : null;
-                    
-                    // رسالة حالة التغطية
-                    let coverageHtml = '';
-                    if (!journal.fromBeallList && !journal.fromBlacklist && lastYear) {
-                        if (inRecentYears) {
-                            coverageHtml = `
-                                <div class="coverage-status coverage-current">
-                                    <i class="fas fa-check-circle"></i>
-                                    ✅ هذه المجلة موجودة في سكوباس ${lastYear}
-                                </div>
-                            `;
-                        } else {
-                            coverageHtml = `
-                                <div class="coverage-status coverage-expired">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    ⚠️ هذه المجلة آخر تغطية لها ${lastYear} (غير موجودة في 2025-2026)
-                                </div>
-                            `;
-                        }
-                    }
-                    
                     return `
                         <div class="journal-card ${cardClass}">
                             ${badges}
@@ -1885,8 +1887,6 @@
                                     ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
                                 </div>
                             ` : ''}
-                            
-                            ${coverageHtml}
                             
                             ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBeallList && !journal.fromBlacklist ? `
                                 <div class="asjc-list">
