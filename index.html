@@ -465,23 +465,6 @@
             animation: pulse 2s infinite;
         }
 
-        .journal-card.beall-only .beall-badge,
-        .journal-card.beall-list .beall-badge {
-            top: 10px;
-        }
-
-        .journal-card.blacklist-only .blacklist-badge,
-        .journal-card.blacklisted .blacklist-badge {
-            top: 10px;
-        }
-
-        .journal-card.beall-only.blacklist-only .beall-badge {
-            top: 10px;
-        }
-        .journal-card.beall-only.blacklist-only .blacklist-badge {
-            top: 60px;
-        }
-
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
@@ -584,6 +567,51 @@
         .metric i {
             color: #2a5298;
             font-size: 0.8rem;
+        }
+
+        /* رسالة تغطية سكوباس */
+        .coverage-message {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin: 0.5rem 0;
+            width: fit-content;
+            font-weight: 600;
+        }
+
+        .coverage-current {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #2196f3;
+        }
+
+        .coverage-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ff9800;
+            animation: pulse-warning 2s infinite;
+        }
+
+        .coverage-expired {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+            animation: pulse-danger 2s infinite;
+        }
+
+        @keyframes pulse-warning {
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+        }
+
+        @keyframes pulse-danger {
+            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
         }
 
         .asjc-list {
@@ -1199,7 +1227,7 @@
             }
         }
 
-        // دالة حساب مسافة ليفنشتاين (Levenshtein distance)
+        // دالة حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
         function levenshteinDistance(a, b) {
             if (a.length === 0) return b.length;
             if (b.length === 0) return a.length;
@@ -1226,66 +1254,6 @@
                 }
             }
             return matrix[b.length][a.length];
-        }
-
-        // دالة التحقق من تطابق كلمة مع سماحية 3 أحرف
-        function isWordMatch(searchWord, titleWord) {
-            const search = searchWord.toLowerCase();
-            const title = titleWord.toLowerCase();
-            
-            // تطابق تام
-            if (title === search) return true;
-            
-            // كلمة قصيرة (أقل من 4 أحرف) لازم تطابق تام
-            if (search.length < 4) return false;
-            
-            // مسافة ليفنشتاين بحد أقصى 3 أحرف
-            const distance = levenshteinDistance(search, title);
-            return distance <= 3;
-        }
-
-        // دالة البحث الذكية - كل كلمة في البحث لازم تلقى مطابق لها في العنوان
-        function findMatchingJournal(searchTerm, journalTitle) {
-            if (!searchTerm || !journalTitle) return false;
-            
-            const searchWords = searchTerm.split(' ').filter(w => w.length > 0);
-            const titleWords = journalTitle.split(' ');
-            
-            // الكلمات القصيرة التي يمكن تجاهلها (حروف جر وأدوات)
-            const shortWords = ['of', 'the', 'in', 'on', 'at', 'for', 'to', 'and', 'or', 'a', 'an', 'is', 'are'];
-            
-            // نسخة من عنوان المجلة للبحث (نقدر نشطب الكلمات المستخدمة)
-            let availableTitleWords = [...titleWords];
-            
-            for (let searchWord of searchWords) {
-                // إذا كانت الكلمة قصيرة (حرف جر)، نتجاهلها
-                if (shortWords.includes(searchWord.toLowerCase())) {
-                    continue;
-                }
-                
-                let foundMatch = false;
-                let matchedIndex = -1;
-                
-                for (let i = 0; i < availableTitleWords.length; i++) {
-                    if (isWordMatch(searchWord, availableTitleWords[i])) {
-                        foundMatch = true;
-                        matchedIndex = i;
-                        break;
-                    }
-                }
-                
-                // إذا ما لقينا مطابق لهذه الكلمة، المجلة غير مناسبة
-                if (!foundMatch) {
-                    return false;
-                }
-                
-                // نشطب الكلمة عشان ما تستخدم مرتين
-                if (matchedIndex !== -1) {
-                    availableTitleWords.splice(matchedIndex, 1);
-                }
-            }
-            
-            return true;
         }
 
         // دالة التحقق من وجود المجلة في القائمة السوداء المحلية
@@ -1372,6 +1340,47 @@
             });
             
             return bestMatch;
+        }
+
+        // دالة استخراج آخر سنة تغطية من حقل Coverage
+        function getLastCoverageYear(coverageString) {
+            if (!coverageString) return null;
+            
+            // البحث عن آخر سنة في النص (مثال: "1999-2024" أو "2020-2025")
+            const matches = coverageString.match(/(\d{4})/g);
+            if (matches && matches.length > 0) {
+                // آخر سنة هي آخر رقم في النص
+                return parseInt(matches[matches.length - 1]);
+            }
+            return null;
+        }
+
+        // دالة تحديد حالة التغطية
+        function getCoverageStatus(lastYear) {
+            if (!lastYear) return null;
+            
+            const currentYear = new Date().getFullYear(); // 2026
+            const lastYearNum = parseInt(lastYear);
+            
+            if (lastYearNum >= currentYear - 1) { // 2025 أو 2026
+                return {
+                    class: 'coverage-current',
+                    icon: '✅',
+                    text: `آخر تغطية: ${lastYearNum} (محدث)`
+                };
+            } else if (lastYearNum >= currentYear - 3) { // 2023-2024
+                return {
+                    class: 'coverage-warning',
+                    icon: '⚠️',
+                    text: `آخر تغطية: ${lastYearNum} (قديم)`
+                };
+            } else { // قبل 2023
+                return {
+                    class: 'coverage-expired',
+                    icon: '❌',
+                    text: `آخر تغطية: ${lastYearNum} (منذ زمن)`
+                };
+            }
         }
 
         function updateStats() {
@@ -1523,7 +1532,7 @@
             }
         };
 
-        // دالة البحث المعدلة - تستخدم findMatchingJournal الذكية
+        // دالة البحث المعدلة - تبحث في جميع القوائم
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1541,54 +1550,69 @@
             // أولاً: البحث في قائمة بيل
             let beallResults = [];
             if (searchTerm && beallListData.length > 0) {
-                beallResults = beallListData
-                    .filter(beallTitle => findMatchingJournal(searchTerm, beallTitle))
-                    .map(beallTitle => ({
-                        'Source Title': beallTitle,
-                        'Source Type': 'Journal',
-                        'Publisher': 'غير معروف (قائمة بيل)',
-                        'Active or Inactive': 'Inactive',
-                        'Titles Discontinued by Scopus': 'No',
-                        'isBlacklisted': false,
-                        'isBeallList': true,
-                        'fromBlacklist': false,
-                        'fromBeallList': true
-                    }));
+                const searchLower = searchTerm.toLowerCase();
+                beallResults = beallListData.filter(beallTitle => {
+                    if (typeof beallTitle !== 'string') return false;
+                    const titleLower = beallTitle.toLowerCase();
+                    return titleLower.includes(searchLower) || 
+                           searchLower.includes(titleLower) ||
+                           levenshteinDistance(searchLower, titleLower) <= 3;
+                }).map(beallTitle => ({
+                    'Source Title': beallTitle,
+                    'Source Type': 'Journal',
+                    'Publisher': 'غير معروف (قائمة بيل)',
+                    'Active or Inactive': 'Inactive',
+                    'Titles Discontinued by Scopus': 'No',
+                    'isBlacklisted': false,
+                    'isBeallList': true,
+                    'fromBlacklist': false,
+                    'fromBeallList': true
+                }));
             }
 
             // ثانياً: البحث في القائمة السوداء المحلية
             let blacklistResults = [];
             if (searchTerm && blacklistData.length > 0) {
-                blacklistResults = blacklistData
-                    .filter(blackTitle => findMatchingJournal(searchTerm, blackTitle))
-                    .map(blackTitle => ({
-                        'Source Title': blackTitle,
-                        'Source Type': 'Journal',
-                        'Publisher': 'غير معروف (قائمة سوداء محلية)',
-                        'Active or Inactive': 'Inactive',
-                        'Titles Discontinued by Scopus': 'No',
-                        'isBlacklisted': true,
-                        'isBeallList': false,
-                        'fromBlacklist': true,
-                        'fromBeallList': false
-                    }));
+                const searchLower = searchTerm.toLowerCase();
+                blacklistResults = blacklistData.filter(blackTitle => {
+                    if (typeof blackTitle !== 'string') return false;
+                    const titleLower = blackTitle.toLowerCase();
+                    return titleLower.includes(searchLower) || 
+                           searchLower.includes(titleLower) ||
+                           levenshteinDistance(searchLower, titleLower) <= 3;
+                }).map(blackTitle => ({
+                    'Source Title': blackTitle,
+                    'Source Type': 'Journal',
+                    'Publisher': 'غير معروف (قائمة سوداء محلية)',
+                    'Active or Inactive': 'Inactive',
+                    'Titles Discontinued by Scopus': 'No',
+                    'isBlacklisted': true,
+                    'isBeallList': false,
+                    'fromBlacklist': true,
+                    'fromBeallList': false
+                }));
             }
 
             // ثالثاً: البحث في سكوباس
             let scopusResults = [];
             if (searchTerm) {
-                scopusResults = scopusData
-                    .filter(journal => {
-                        const title = journal['Source Title'] || '';
-                        return findMatchingJournal(searchTerm, title);
-                    })
-                    .map(journal => ({
-                        ...journal,
-                        'isBlacklisted': isInBlacklist(journal['Source Title']),
-                        'isBeallList': isInBeallList(journal['Source Title']),
-                        'fromBlacklist': false,
-                        'fromBeallList': false
-                    }));
+                const searchLower = searchTerm.toLowerCase();
+                scopusResults = scopusData.filter(journal => {
+                    const title = (journal['Source Title'] || '').toLowerCase();
+                    const issn = (journal['ISSN'] || '').toLowerCase();
+                    const eissn = (journal['EISSN'] || '').toLowerCase();
+                    const publisher = (journal['Publisher'] || '').toLowerCase();
+                    
+                    return title.includes(searchLower) || issn.includes(searchLower) || 
+                           eissn.includes(searchLower) || publisher.includes(searchLower) ||
+                           levenshteinDistance(searchLower, title) <= 3;
+                }).map(journal => ({
+                    ...journal,
+                    'isBlacklisted': isInBlacklist(journal['Source Title']),
+                    'isBeallList': isInBeallList(journal['Source Title']),
+                    'fromBlacklist': false,
+                    'fromBeallList': false
+                }));
             } else {
                 // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس مع علامات القوائم
                 scopusResults = scopusData.map(journal => ({
@@ -1730,6 +1754,10 @@
                         `;
                     }
                     
+                    // الحصول على آخر سنة تغطية
+                    const lastCoverageYear = getLastCoverageYear(journal['Coverage']);
+                    const coverageStatus = getCoverageStatus(lastCoverageYear);
+                    
                     return `
                         <div class="journal-card ${cardClass}">
                             ${badges}
@@ -1759,6 +1787,13 @@
                                     ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
                                     ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
                                     ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
+                                </div>
+                            ` : ''}
+                            
+                            ${!journal.fromBeallList && !journal.fromBlacklist && coverageStatus ? `
+                                <div class="coverage-message ${coverageStatus.class}">
+                                    <i class="fas ${coverageStatus.icon === '✅' ? 'fa-check-circle' : (coverageStatus.icon === '⚠️' ? 'fa-exclamation-triangle' : 'fa-times-circle')}"></i>
+                                    ${coverageStatus.text}
                                 </div>
                             ` : ''}
                             
