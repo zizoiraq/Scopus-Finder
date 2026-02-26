@@ -391,16 +391,28 @@
             position: relative;
         }
 
-        .journal-card.in-beall-list {
+        .journal-card.blacklisted {
             border-right-color: #dc3545;
             background: linear-gradient(45deg, #fff, #fff5f5);
             box-shadow: 0 5px 20px rgba(220, 53, 69, 0.2);
         }
 
-        .journal-card.beall-only {
+        .journal-card.beall-list {
+            border-right-color: #ff6b35;
+            background: linear-gradient(45deg, #fff, #fff0e6);
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.2);
+        }
+
+        .journal-card.blacklist-only {
             border-right-color: #dc3545;
             background: #fff5f5;
             border: 2px solid #dc3545;
+        }
+
+        .journal-card.beall-only {
+            border-right-color: #ff6b35;
+            background: #fff0e6;
+            border: 2px solid #ff6b35;
         }
 
         .journal-card:hover {
@@ -417,7 +429,7 @@
             background: #fff3e0;
         }
 
-        .beall-badge {
+        .blacklist-badge {
             position: absolute;
             top: 10px;
             left: 10px;
@@ -432,6 +444,24 @@
             gap: 5px;
             z-index: 10;
             box-shadow: 0 2px 10px rgba(220, 53, 69, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .beall-badge {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background: #ff6b35;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
             animation: pulse 2s infinite;
         }
 
@@ -463,8 +493,12 @@
             line-height: 1.4;
         }
 
-        .journal-card.in-beall-list .journal-title {
+        .journal-card.blacklisted .journal-title {
             color: #dc3545;
+        }
+
+        .journal-card.beall-list .journal-title {
+            color: #ff6b35;
         }
 
         .status-badge {
@@ -603,6 +637,15 @@
             background: #c82333;
         }
 
+        .btn-warning {
+            background: #ff6b35;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e54e1b;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -672,8 +715,20 @@
             color: #666;
         }
 
-        .beall-warning {
+        .blacklist-warning {
             background: #dc3545;
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .beall-warning {
+            background: #ff6b35;
             color: white;
             padding: 1rem;
             border-radius: 10px;
@@ -844,8 +899,13 @@
             </div>
             <div class="stat-card" style="background: #fff5f5; border: 2px solid #dc3545;">
                 <i class="fas fa-ban" style="color: #dc3545;"></i>
-                <div class="stat-number" id="beallListCount">0</div>
-                <div class="stat-label">في قائمة بيل</div>
+                <div class="stat-number" id="blacklistedCount">0</div>
+                <div class="stat-label">القائمة السوداء</div>
+            </div>
+            <div class="stat-card" style="background: #fff0e6; border: 2px solid #ff6b35;">
+                <i class="fas fa-exclamation-triangle" style="color: #ff6b35;"></i>
+                <div class="stat-number" id="beallCount">0</div>
+                <div class="stat-label">قائمة بيل</div>
             </div>
         </div>
 
@@ -995,213 +1055,12 @@
 
         // Global variables
         let scopusData = [];
-        let beallList = [];
+        let blacklistData = [];
+        let beallListData = [];
         let filteredData = [];
         let selectedASJC = new Set();
         let previousSearchTerm = '';
         let suggestedCorrection = null;
-
-        // ================ دوال البحث الذكي ================
-
-        /**
-         * حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
-         */
-        function levenshteinDistance(a, b) {
-            if (a.length === 0) return b.length;
-            if (b.length === 0) return a.length;
-
-            const matrix = [];
-            for (let i = 0; i <= b.length; i++) {
-                matrix[i] = [i];
-            }
-            for (let j = 0; j <= a.length; j++) {
-                matrix[0][j] = j;
-            }
-
-            for (let i = 1; i <= b.length; i++) {
-                for (let j = 1; j <= a.length; j++) {
-                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                        matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            matrix[i][j - 1] + 1,
-                            matrix[i - 1][j] + 1
-                        );
-                    }
-                }
-            }
-            return matrix[b.length][a.length];
-        }
-
-        /**
-         * حساب التشابه النسبي بين سلسلتين (0-1)
-         * حيث 1 يعني تطابق تام، 0 يعني لا يوجد تشابه
-         */
-        function calculateSimilarity(str1, str2) {
-            if (!str1 || !str2) return 0;
-            
-            const s1 = str1.toLowerCase().trim();
-            const s2 = str2.toLowerCase().trim();
-            
-            if (s1 === s2) return 1;
-            if (s1.length === 0 || s2.length === 0) return 0;
-            
-            const distance = levenshteinDistance(s1, s2);
-            const maxLength = Math.max(s1.length, s2.length);
-            
-            // التشابه النسبي (1 - (المسافة / الطول الأكبر))
-            return 1 - (distance / maxLength);
-        }
-
-        /**
-         * حساب تشابه bigram بين سلسلتين
-         * Bigrams هي أزواج متتالية من الأحرف
-         */
-        function bigramSimilarity(str1, str2) {
-            const s1 = str1.toLowerCase().trim();
-            const s2 = str2.toLowerCase().trim();
-            
-            if (s1 === s2) return 1;
-            if (s1.length < 2 || s2.length < 2) return 0;
-            
-            // إنشاء bigrams
-            const getBigrams = (str) => {
-                const bigrams = new Set();
-                for (let i = 0; i < str.length - 1; i++) {
-                    bigrams.add(str.substring(i, i + 2));
-                }
-                return bigrams;
-            };
-            
-            const bigrams1 = getBigrams(s1);
-            const bigrams2 = getBigrams(s2);
-            
-            // حساب التقاطع
-            let intersection = 0;
-            for (let bigram of bigrams1) {
-                if (bigrams2.has(bigram)) intersection++;
-            }
-            
-            // معامل جاكارد (Jaccard coefficient)
-            const union = bigrams1.size + bigrams2.size - intersection;
-            return union === 0 ? 0 : intersection / union;
-        }
-
-        /**
-         * حساب تشابه الكلمات الرئيسية
-         * يقسم النص إلى كلمات ويبحث عن الكلمات المشتركة
-         */
-        function tokenMatchSimilarity(str1, str2) {
-            const s1 = str1.toLowerCase().trim();
-            const s2 = str2.toLowerCase().trim();
-            
-            // كلمات شائعة يتم تجاهلها
-            const stopWords = new Set(['the', 'and', 'of', 'in', 'on', 'at', 'for', 'to', 'with', 'journal', 'international', 'review', 'research', 'science', 'sciences', 'technology', 'engineering', 'medical', 'medicine', 'health', 'clinical', 'scientific', 'advances', 'current', 'journal', 'review', 'letters', 'communications', 'proceedings', 'transactions', 'archives', 'annals', 'acta']);
-            
-            const tokens1 = s1.split(/\W+/).filter(t => t.length > 2 && !stopWords.has(t));
-            const tokens2 = s2.split(/\W+/).filter(t => t.length > 2 && !stopWords.has(t));
-            
-            if (tokens1.length === 0 || tokens2.length === 0) return 0;
-            
-            // حساب الكلمات المتطابقة
-            let matches = 0;
-            for (let token1 of tokens1) {
-                for (let token2 of tokens2) {
-                    if (token1 === token2 || 
-                        token1.includes(token2) || 
-                        token2.includes(token1) ||
-                        levenshteinDistance(token1, token2) <= 2) {
-                        matches++;
-                        break;
-                    }
-                }
-            }
-            
-            // متوسط التطابق بين المجموعتين
-            const score1 = matches / tokens1.length;
-            const score2 = matches / tokens2.length;
-            
-            return (score1 + score2) / 2;
-        }
-
-        /**
-         * دالة البحث الذكي الموحدة
-         */
-        function smartMatch(searchTerm, targetTitle) {
-            if (!searchTerm || !targetTitle) return 0;
-            
-            const s1 = searchTerm.toLowerCase().trim();
-            const s2 = targetTitle.toLowerCase().trim();
-            
-            // 1. تطابق تام
-            if (s1 === s2) return 1;
-            
-            // 2. احتواء (الوضع الحالي)
-            if (s2.includes(s1) || s1.includes(s2)) return 0.95;
-            
-            // 3. حساب جميع مقاييس التشابه
-            const similarity = calculateSimilarity(s1, s2);
-            const bigramScore = bigramSimilarity(s1, s2);
-            const tokenScore = tokenMatchSimilarity(s1, s2);
-            
-            // 4. الترجيح المرجح (Weighted average)
-            const weights = {
-                similarity: 0.5,    // المسافة النسبية لها الوزن الأكبر
-                bigram: 0.3,        // Bigrams مفيدة للكلمات المتشابهة
-                token: 0.2          // الكلمات الرئيسية مفيدة للعناوين الطويلة
-            };
-            
-            const finalScore = (similarity * weights.similarity) + 
-                               (bigramScore * weights.bigram) + 
-                               (tokenScore * weights.token);
-            
-            return finalScore;
-        }
-
-        /**
-         * دالة findClosestMatch المعدلة - تبحث عن أفضل تطابق ذكي
-         */
-        function findClosestMatch(searchTerm, minSimilarity = 0.3) {
-            if (!searchTerm || searchTerm.length < 2) return null;
-            
-            const searchLower = searchTerm.toLowerCase().trim();
-            let bestMatch = null;
-            let bestScore = 0;
-            
-            // البحث في قائمة بيل أولاً
-            beallList.forEach(title => {
-                const score = smartMatch(searchTerm, title);
-                if (score > bestScore && score >= minSimilarity) {
-                    bestScore = score;
-                    bestMatch = {
-                        title: title,
-                        type: 'beall',
-                        score: score,
-                        distance: levenshteinDistance(searchLower, title.toLowerCase())
-                    };
-                }
-            });
-            
-            // البحث في مجلات سكوباس
-            scopusData.forEach(journal => {
-                const title = journal['Source Title'] || '';
-                const score = smartMatch(searchTerm, title);
-                if (score > bestScore && score >= minSimilarity) {
-                    bestScore = score;
-                    bestMatch = {
-                        title: title,
-                        type: 'scopus',
-                        score: score,
-                        distance: levenshteinDistance(searchLower, title.toLowerCase())
-                    };
-                }
-            });
-            
-            return bestMatch;
-        }
-
-        // ================ دوال التحميل والبيانات ================
 
         // Load data when page loads
         window.addEventListener('load', function() {
@@ -1213,7 +1072,7 @@
             const errorScreen = document.getElementById('errorScreen');
             
             try {
-                // Load Scopus file
+                // تحميل ملف سكوباس
                 const response = await fetch('data/ext_list_Jan_2026.xlsx');
                 
                 if (!response.ok) {
@@ -1247,22 +1106,25 @@
                     scopusData.push(journal);
                 }
 
-                // Load Beall's List
+                // تحميل القائمة السوداء المحلية
+                await loadBlacklist();
+                
+                // تحميل قائمة بيل
                 await loadBeallList();
 
-                // Hide loading screen
+                // إخفاء شاشة التحميل
                 loadingScreen.style.display = 'none';
                 
-                // Show content
+                // إظهار المحتوى
                 document.getElementById('dbStats').style.display = 'grid';
                 document.getElementById('searchSection').style.display = 'block';
                 document.getElementById('resultsSection').style.display = 'block';
 
-                // Update stats
+                // تحديث الإحصائيات
                 updateStats();
                 loadASJCTags();
                 
-                // Show all data initially
+                // عرض جميع البيانات في البداية
                 filteredData = [...scopusData];
                 displayJournals();
 
@@ -1279,33 +1141,147 @@
             }
         }
 
-        // Function to load Beall's List
+        // دالة تحميل القائمة السوداء المحلية
+        async function loadBlacklist() {
+            try {
+                const response = await fetch('data/blacklist.json');
+                if (!response.ok) {
+                    console.warn('Blacklist file not found');
+                    blacklistData = [];
+                    return;
+                }
+                blacklistData = await response.json();
+                console.log(`Loaded ${blacklistData.length} blacklisted journals`);
+            } catch (error) {
+                console.error('Error loading blacklist:', error);
+                blacklistData = [];
+            }
+        }
+
+        // دالة تحميل قائمة بيل
         async function loadBeallList() {
             try {
                 const response = await fetch('data/beall_list.json');
                 if (!response.ok) {
                     console.warn('Beall list file not found');
-                    beallList = [];
+                    beallListData = [];
                     return;
                 }
-                beallList = await response.json();
-                console.log(`Loaded ${beallList.length} journals from Beall's list`);
+                beallListData = await response.json();
+                console.log(`Loaded ${beallListData.length} journals from Beall's list`);
             } catch (error) {
                 console.error('Error loading Beall list:', error);
-                beallList = [];
+                beallListData = [];
             }
         }
 
-        // Function to check if a journal is in Beall's list
-        function isInBeallList(journalTitle) {
-            if (!journalTitle || !beallList.length) return false;
+        // دالة حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
+        function levenshteinDistance(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) {
+                matrix[i] = [i];
+            }
+            for (let j = 0; j <= a.length; j++) {
+                matrix[0][j] = j;
+            }
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        // دالة التحقق من وجود المجلة في القائمة السوداء المحلية
+        function isInBlacklist(journalTitle) {
+            if (!journalTitle || !blacklistData.length) return false;
             
             const titleLower = journalTitle.toLowerCase().trim();
-            return beallList.some(beallTitle => 
+            return blacklistData.some(blackTitle => 
+                blackTitle.toLowerCase().trim() === titleLower ||
+                blackTitle.toLowerCase().includes(titleLower) ||
+                titleLower.includes(blackTitle.toLowerCase())
+            );
+        }
+
+        // دالة التحقق من وجود المجلة في قائمة بيل
+        function isInBeallList(journalTitle) {
+            if (!journalTitle || !beallListData.length) return false;
+            
+            const titleLower = journalTitle.toLowerCase().trim();
+            return beallListData.some(beallTitle => 
                 beallTitle.toLowerCase().trim() === titleLower ||
                 beallTitle.toLowerCase().includes(titleLower) ||
                 titleLower.includes(beallTitle.toLowerCase())
             );
+        }
+
+        // دالة البحث عن اقرب تطابق مع تصحيح الأخطاء الإملائية
+        function findClosestMatch(searchTerm, maxDistance = 3) {
+            if (!searchTerm || searchTerm.length < 3) return null;
+            
+            const searchLower = searchTerm.toLowerCase();
+            let bestMatch = null;
+            let bestDistance = Infinity;
+            
+            // البحث في قائمة بيل أولاً
+            beallListData.forEach(title => {
+                const titleLower = title.toLowerCase();
+                const distance = levenshteinDistance(searchLower, titleLower);
+                
+                if (distance < bestDistance && distance <= maxDistance) {
+                    bestDistance = distance;
+                    bestMatch = {
+                        title: title,
+                        type: 'beall',
+                        distance: distance
+                    };
+                }
+            });
+            
+            // البحث في القائمة السوداء المحلية
+            blacklistData.forEach(title => {
+                const titleLower = title.toLowerCase();
+                const distance = levenshteinDistance(searchLower, titleLower);
+                
+                if (distance < bestDistance && distance <= maxDistance) {
+                    bestDistance = distance;
+                    bestMatch = {
+                        title: title,
+                        type: 'blacklist',
+                        distance: distance
+                    };
+                }
+            });
+            
+            // البحث في مجلات سكوباس
+            scopusData.forEach(journal => {
+                const title = (journal['Source Title'] || '').toLowerCase();
+                const distance = levenshteinDistance(searchLower, title);
+                
+                if (distance < bestDistance && distance <= maxDistance) {
+                    bestDistance = distance;
+                    bestMatch = {
+                        title: journal['Source Title'],
+                        type: 'scopus',
+                        distance: distance
+                    };
+                }
+            });
+            
+            return bestMatch;
         }
 
         function updateStats() {
@@ -1313,13 +1289,15 @@
             const active = scopusData.filter(j => j['Active or Inactive'] === 'Active').length;
             const discontinued = scopusData.filter(j => j['Titles Discontinued by Scopus'] === 'Yes').length;
             const publishers = new Set(scopusData.map(j => j['Publisher']).filter(p => p)).size;
-            const beallCount = beallList.length;
+            const blacklisted = blacklistData.length;
+            const beallCount = beallListData.length;
 
             document.getElementById('totalJournals').textContent = total.toLocaleString();
             document.getElementById('activeJournals').textContent = active.toLocaleString();
             document.getElementById('discontinuedJournals').textContent = discontinued.toLocaleString();
             document.getElementById('publishersCount').textContent = publishers.toLocaleString();
-            document.getElementById('beallListCount').textContent = beallCount.toLocaleString();
+            document.getElementById('blacklistedCount').textContent = blacklisted.toLocaleString();
+            document.getElementById('beallCount').textContent = beallCount.toLocaleString();
             
             document.getElementById('globalStats').innerHTML = `
                 <i class="fas fa-database"></i>
@@ -1396,9 +1374,66 @@
             return 'all';
         }
 
-        /**
-         * دالة البحث المعدلة - تبحث في قائمة بيل وسكوباس
-         */
+        // دالة عرض اقتراح التصحيح الإملائي
+        function showSpellingSuggestion(original, suggestion) {
+            const searchSection = document.querySelector('.search-section');
+            const suggestionBox = document.createElement('div');
+            suggestionBox.id = 'suggestionBox';
+            suggestionBox.style.cssText = `
+                background: #fff3cd;
+                border: 2px solid #ffc107;
+                border-radius: 10px;
+                padding: 1rem;
+                margin: 1rem 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 1rem;
+            `;
+            
+            const matchPercentage = Math.round((1 - suggestion.distance / Math.max(original.length, suggestion.title.length)) * 100);
+            
+            let badgeHtml = '';
+            if (suggestion.type === 'beall') {
+                badgeHtml = '<span style="background: #ff6b35; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في قائمة بيل</span>';
+            } else if (suggestion.type === 'blacklist') {
+                badgeHtml = '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في القائمة السوداء</span>';
+            }
+            
+            suggestionBox.innerHTML = `
+                <div>
+                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-left: 0.5rem;"></i>
+                    <span>لم نعثر على "${original}"، هل تقصد: </span>
+                    <strong style="color: #856404;">${suggestion.title}</strong>
+                    <span style="color: #856404; font-size: 0.9rem; margin-right: 0.5rem;">
+                        (دقة التطابق: ${matchPercentage}%)
+                    </span>
+                    ${badgeHtml}
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="useSuggestedCorrection()" style="margin-left: 0.5rem;">
+                        <i class="fas fa-check"></i> نعم
+                    </button>
+                    <button class="btn btn-outline" onclick="document.getElementById('suggestionBox').remove()">
+                        <i class="fas fa-times"></i> إلغاء
+                    </button>
+                </div>
+            `;
+            
+            searchSection.insertBefore(suggestionBox, document.querySelector('.filters-grid'));
+        }
+
+        // دالة استخدام التصحيح المقترح
+        window.useSuggestedCorrection = function() {
+            if (suggestedCorrection) {
+                document.getElementById('searchInput').value = suggestedCorrection.title;
+                document.getElementById('suggestionBox')?.remove();
+                performSearch();
+            }
+        };
+
+        // دالة البحث المعدلة - تبحث في جميع القوائم
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1411,65 +1446,87 @@
             document.getElementById('suggestionBox')?.remove();
             suggestedCorrection = null;
 
-            // البحث الذكي في كل من Beall's list و Scopus
+            // أولاً: البحث في قائمة بيل
             let beallResults = [];
-            let scopusResults = [];
-
-            if (searchTerm) {
+            if (searchTerm && beallListData.length > 0) {
                 const searchLower = searchTerm.toLowerCase();
-                const minSimilarity = 0.3; // يمكن تعديل هذه القيمة
-                
-                // البحث الذكي في Beall's list
-                if (beallList.length > 0) {
-                    beallResults = beallList
-                        .map(title => ({
-                            title: title,
-                            score: smartMatch(searchTerm, title)
-                        }))
-                        .filter(item => item.score >= minSimilarity)
-                        .sort((a, b) => b.score - a.score)
-                        .map(item => ({
-                            'Source Title': item.title,
-                            'Source Type': 'Journal',
-                            'Publisher': 'غير معروف (قائمة بيل)',
-                            'Active or Inactive': 'Inactive',
-                            'Titles Discontinued by Scopus': 'No',
-                            'isInBeallList': true,
-                            'fromBeallList': true,
-                            'matchScore': item.score
-                        }));
-                }
-                
-                // البحث الذكي في Scopus
-                scopusResults = scopusData
-                    .map(journal => ({
-                        journal: journal,
-                        score: smartMatch(searchTerm, journal['Source Title'] || '')
-                    }))
-                    .filter(item => item.score >= minSimilarity)
-                    .sort((a, b) => b.score - a.score)
-                    .map(item => ({
-                        ...item.journal,
-                        'isInBeallList': isInBeallList(item.journal['Source Title']),
-                        'fromBeallList': false,
-                        'matchScore': item.score
-                    }));
-            } else {
-                // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس
-                scopusResults = scopusData.map(journal => ({
-                    ...journal,
-                    'isInBeallList': isInBeallList(journal['Source Title']),
-                    'fromBeallList': false,
-                    'matchScore': 1
+                beallResults = beallListData.filter(beallTitle => {
+                    const titleLower = beallTitle.toLowerCase();
+                    return titleLower.includes(searchLower) || 
+                           searchLower.includes(titleLower) ||
+                           levenshteinDistance(searchLower, titleLower) <= 3;
+                }).map(beallTitle => ({
+                    'Source Title': beallTitle,
+                    'Source Type': 'Journal',
+                    'Publisher': 'غير معروف (قائمة بيل)',
+                    'Active or Inactive': 'Inactive',
+                    'Titles Discontinued by Scopus': 'No',
+                    'isBlacklisted': false,
+                    'isBeallList': true,
+                    'fromBlacklist': false,
+                    'fromBeallList': true
                 }));
             }
 
-            // دمج النتائج (قائمة بيل أولاً)
-            filteredData = [...beallResults, ...scopusResults];
+            // ثانياً: البحث في القائمة السوداء المحلية
+            let blacklistResults = [];
+            if (searchTerm && blacklistData.length > 0) {
+                const searchLower = searchTerm.toLowerCase();
+                blacklistResults = blacklistData.filter(blackTitle => {
+                    const titleLower = blackTitle.toLowerCase();
+                    return titleLower.includes(searchLower) || 
+                           searchLower.includes(titleLower) ||
+                           levenshteinDistance(searchLower, titleLower) <= 3;
+                }).map(blackTitle => ({
+                    'Source Title': blackTitle,
+                    'Source Type': 'Journal',
+                    'Publisher': 'غير معروف (قائمة سوداء محلية)',
+                    'Active or Inactive': 'Inactive',
+                    'Titles Discontinued by Scopus': 'No',
+                    'isBlacklisted': true,
+                    'isBeallList': false,
+                    'fromBlacklist': true,
+                    'fromBeallList': false
+                }));
+            }
+
+            // ثالثاً: البحث في سكوباس
+            let scopusResults = [];
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                scopusResults = scopusData.filter(journal => {
+                    const title = (journal['Source Title'] || '').toLowerCase();
+                    const issn = (journal['ISSN'] || '').toLowerCase();
+                    const eissn = (journal['EISSN'] || '').toLowerCase();
+                    const publisher = (journal['Publisher'] || '').toLowerCase();
+                    
+                    return title.includes(searchLower) || issn.includes(searchLower) || 
+                           eissn.includes(searchLower) || publisher.includes(searchLower) ||
+                           levenshteinDistance(searchLower, title) <= 3;
+                }).map(journal => ({
+                    ...journal,
+                    'isBlacklisted': isInBlacklist(journal['Source Title']),
+                    'isBeallList': isInBeallList(journal['Source Title']),
+                    'fromBlacklist': false,
+                    'fromBeallList': false
+                }));
+            } else {
+                // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس مع علامات القوائم
+                scopusResults = scopusData.map(journal => ({
+                    ...journal,
+                    'isBlacklisted': isInBlacklist(journal['Source Title']),
+                    'isBeallList': isInBeallList(journal['Source Title']),
+                    'fromBlacklist': false,
+                    'fromBeallList': false
+                }));
+            }
+
+            // دمج النتائج (قائمة بيل أولاً، ثم القائمة السوداء، ثم سكوباس)
+            filteredData = [...beallResults, ...blacklistResults, ...scopusResults];
 
             // تطبيق الفلاتر الأخرى على نتائج سكوباس فقط
             filteredData = filteredData.filter(item => {
-                if (item.fromBeallList) return true; // نتائج قائمة بيل تظهر دائماً
+                if (item.fromBeallList || item.fromBlacklist) return true;
 
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
@@ -1512,7 +1569,7 @@
                 return true;
             });
 
-            // إزالة التكرارات
+            // إزالة التكرارات (إذا ظهرت نفس المجلة في قائمة بيل والقائمة السوداء وسكوباس)
             const uniqueTitles = new Set();
             filteredData = filteredData.filter(item => {
                 const title = item['Source Title'];
@@ -1523,14 +1580,9 @@
                 return true;
             });
 
-            // ترتيب حسب درجة المطابقة (إذا كان هناك بحث)
-            if (searchTerm) {
-                filteredData.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
-            }
-
-            // إذا لم توجد نتائج، نبحث عن أقرب تطابق
+            // إذا لم توجد نتائج وكان هناك خطأ إملائي محتمل
             if (filteredData.length === 0 && searchTerm.length >= 3) {
-                const closestMatch = findClosestMatch(searchTerm, 0.3);
+                const closestMatch = findClosestMatch(searchTerm);
                 if (closestMatch) {
                     suggestedCorrection = closestMatch;
                     showSpellingSuggestion(searchTerm, closestMatch);
@@ -1539,62 +1591,6 @@
 
             displayJournals();
         }
-
-        /**
-         * دالة عرض اقتراح التصحيح
-         */
-        function showSpellingSuggestion(original, suggestion) {
-            const searchSection = document.querySelector('.search-section');
-            const suggestionBox = document.createElement('div');
-            suggestionBox.id = 'suggestionBox';
-            suggestionBox.style.cssText = `
-                background: #fff3cd;
-                border: 2px solid #ffc107;
-                border-radius: 10px;
-                padding: 1rem;
-                margin: 1rem 0;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 1rem;
-            `;
-            
-            const similarityPercent = Math.round(suggestion.score * 100);
-            
-            suggestionBox.innerHTML = `
-                <div>
-                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-left: 0.5rem;"></i>
-                    <span>لم نعثر على "${original}"، هل تقصد: </span>
-                    <strong style="color: #856404;">${suggestion.title}</strong>
-                    <span style="color: #856404; font-size: 0.9rem; margin-right: 0.5rem;">
-                        (نسبة التطابق: ${similarityPercent}%)
-                    </span>
-                    ${suggestion.type === 'beall' ? 
-                        '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في قائمة بيل</span>' : 
-                        ''}
-                </div>
-                <div>
-                    <button class="btn btn-primary" onclick="useSuggestedCorrection()" style="margin-left: 0.5rem;">
-                        <i class="fas fa-check"></i> نعم
-                    </button>
-                    <button class="btn btn-outline" onclick="document.getElementById('suggestionBox').remove()">
-                        <i class="fas fa-times"></i> إلغاء
-                    </button>
-                </div>
-            `;
-            
-            searchSection.insertBefore(suggestionBox, document.querySelector('.filters-grid'));
-        }
-
-        // Function to use suggested correction
-        window.useSuggestedCorrection = function() {
-            if (suggestedCorrection) {
-                document.getElementById('searchInput').value = suggestedCorrection.title;
-                document.getElementById('suggestionBox')?.remove();
-                performSearch();
-            }
-        };
 
         function displayJournals() {
             const grid = document.getElementById('journalsGrid');
@@ -1611,50 +1607,62 @@
                 grid.innerHTML = filteredData.map(journal => {
                     const isActive = journal['Active or Inactive'] === 'Active';
                     const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
-                    const isInBeall = journal.isInBeallList || journal.fromBeallList;
-                    const matchScore = journal.matchScore ? Math.round(journal.matchScore * 100) : null;
+                    const isBlacklisted = journal.isBlacklisted || journal.fromBlacklist;
+                    const isBeallList = journal.isBeallList || journal.fromBeallList;
                     
                     let cardClass = '';
                     if (journal.fromBeallList) {
                         cardClass = 'beall-only';
+                    } else if (journal.fromBlacklist) {
+                        cardClass = 'blacklist-only';
                     } else if (isDiscontinued) {
                         cardClass = 'discontinued';
                     } else if (!isActive) {
                         cardClass = 'inactive';
                     }
                     
-                    if (isInBeall && !journal.fromBeallList) {
-                        cardClass += ' in-beall-list';
+                    if (isBlacklisted && !journal.fromBlacklist) {
+                        cardClass += ' blacklisted';
+                    }
+                    if (isBeallList && !journal.fromBeallList) {
+                        cardClass += ' beall-list';
                     }
                     
                     const issn = journal['ISSN'] || '';
                     const eissn = journal['EISSN'] || '';
                     
+                    let badges = '';
+                    if (isBeallList) {
+                        badges += `
+                            <div class="beall-badge">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                ${journal.fromBeallList ? 'قائمة بيل' : 'في قائمة بيل'}
+                            </div>
+                        `;
+                    }
+                    if (isBlacklisted) {
+                        badges += `
+                            <div class="blacklist-badge" style="${isBeallList ? 'top: 90px;' : ''}">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                ${journal.fromBlacklist ? 'مجلة وهمية' : 'في القائمة السوداء'}
+                            </div>
+                        `;
+                    }
+                    
                     return `
                         <div class="journal-card ${cardClass}">
-                            ${isInBeall ? `
-                                <div class="beall-badge">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    ${journal.fromBeallList ? 'مجلة في قائمة بيل' : 'محذرة: موجودة في قائمة بيل'}
-                                </div>
-                            ` : ''}
+                            ${badges}
                             
-                            <div class="journal-header">
+                            <div class="journal-header" style="${(isBeallList || isBlacklisted) ? 'margin-left: 60px;' : ''}">
                                 <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
-                                ${!journal.fromBeallList ? `
+                                ${!journal.fromBeallList && !journal.fromBlacklist ? `
                                     <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
                                         ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
                                     </span>
                                 ` : ''}
                             </div>
                             
-                            ${matchScore ? `
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">
-                                    <i class="fas fa-chart-line"></i> نسبة المطابقة: ${matchScore}%
-                                </div>
-                            ` : ''}
-                            
-                            ${!journal.fromBeallList ? `
+                            ${!journal.fromBeallList && !journal.fromBlacklist ? `
                                 <div class="journal-ids">
                                     ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
                                     ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
@@ -1665,7 +1673,7 @@
                                 <i class="fas fa-building"></i> ${journal['Publisher'] || 'ناشر غير معروف'}
                             </div>
                             
-                            ${!journal.fromBeallList ? `
+                            ${!journal.fromBeallList && !journal.fromBlacklist ? `
                                 <div class="journal-metrics">
                                     ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
                                     ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
@@ -1673,7 +1681,7 @@
                                 </div>
                             ` : ''}
                             
-                            ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBeallList ? `
+                            ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBeallList && !journal.fromBlacklist ? `
                                 <div class="asjc-list">
                                     ${journal['All Science Journal Classification Codes (ASJC)'].split(';').slice(0, 3).map(code => 
                                         `<span class="asjc-code">${code}</span>`
@@ -1687,7 +1695,7 @@
                                 <button class="btn btn-primary" onclick="showJournalDetails('${journal['Source Title'].replace(/'/g, "\\'")}')">
                                     <i class="fas fa-info-circle"></i> تفاصيل
                                 </button>
-                                <button class="btn ${isInBeall ? 'btn-danger' : 'btn-outline'}" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
+                                <button class="btn ${isBlacklisted ? 'btn-danger' : (isBeallList ? 'btn-warning' : 'btn-outline')}" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
                                     <i class="fas fa-copy"></i> نسخ
                                 </button>
                             </div>
@@ -1697,27 +1705,42 @@
             }
 
             document.getElementById('resultsCount').textContent = 
-                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${(scopusData.length + beallList.length).toLocaleString()}`;
+                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${(scopusData.length + blacklistData.length + beallListData.length).toLocaleString()}`;
         }
 
         window.showJournalDetails = (title) => {
             // البحث في قائمة بيل أولاً
-            const beallJournal = beallList.includes(title) ? { 'Source Title': title, 'fromBeallList': true } : null;
-            const journal = beallJournal || scopusData.find(j => j['Source Title'] === title);
+            const beallJournal = beallListData.includes(title) ? { 'Source Title': title, 'fromBeallList': true } : null;
+            // البحث في القائمة السوداء المحلية
+            const blacklistJournal = !beallJournal && blacklistData.includes(title) ? { 'Source Title': title, 'fromBlacklist': true } : null;
+            // البحث في سكوباس
+            const scopusJournal = !beallJournal && !blacklistJournal ? scopusData.find(j => j['Source Title'] === title) : null;
             
+            const journal = beallJournal || blacklistJournal || scopusJournal;
             if (!journal) return;
 
-            const isInBeall = isInBeallList(title) || beallJournal;
+            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
+            const isBeallList = isInBeallList(title) || beallJournal;
+            
             const modal = document.getElementById('journalModal');
             const detailDiv = document.getElementById('journalDetail');
             
             let html = '';
             
-            if (isInBeall) {
+            if (isBeallList) {
                 html += `
                     <div class="beall-warning">
                         <i class="fas fa-exclamation-triangle"></i>
-                        ⚠️ تحذير شديد: هذه المجلة موجودة في قائمة بيل (Beall's List) للمجلات المفترسة
+                        ⚠️ تحذير: هذه المجلة موجودة في قائمة بيل للمجلات المفترسة
+                    </div>
+                `;
+            }
+            
+            if (isBlacklisted) {
+                html += `
+                    <div class="blacklist-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ⚠️ تحذير شديد: هذه المجلة موجودة في القائمة السوداء للمجلات التجارية والمزيفة
                     </div>
                 `;
             }
@@ -1730,20 +1753,39 @@
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">الحالة:</div>
-                        <div class="detail-value" style="color: #dc3545; font-weight: bold;">⚠️ في قائمة بيل (مجلة مفترسة)</div>
+                        <div class="detail-value" style="color: #ff6b35; font-weight: bold;">⚠️ في قائمة بيل (مجلة مفترسة)</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">تحذير:</div>
-                        <div class="detail-value" style="color: #dc3545;">هذه المجلة غير معتمدة ويجب تجنب النشر فيها</div>
+                        <div class="detail-value" style="color: #ff6b35;">هذه المجلة مصنفة كمفترسة حسب قائمة بيل</div>
                     </div>
                 `;
-            } else {
-                for (let [key, value] of Object.entries(journal)) {
+            } else if (blacklistJournal) {
+                html += `
+                    <div class="detail-row">
+                        <div class="detail-label">اسم المجلة:</div>
+                        <div class="detail-value">${title}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">الحالة:</div>
+                        <div class="detail-value" style="color: #dc3545; font-weight: bold;">⚠️ في القائمة السوداء (مجلة وهمية)</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">تحذير:</div>
+                        <div class="detail-value" style="color: #dc3545;">هذه المجلة غير معتمدة ولا يمكن النشر فيها للترقيات العلمية</div>
+                    </div>
+                `;
+            } else if (scopusJournal) {
+                for (let [key, value] of Object.entries(scopusJournal)) {
                     if (value && key !== '') {
+                        let valueColor = '';
+                        if (key.includes('Open Access') && value === 'OA') {
+                            valueColor = 'color: #28a745;';
+                        }
                         html += `
                             <div class="detail-row">
                                 <div class="detail-label">${key}:</div>
-                                <div class="detail-value">${value}</div>
+                                <div class="detail-value" style="${valueColor}">${value}</div>
                             </div>
                         `;
                     }
@@ -1756,33 +1798,53 @@
 
         window.copyJournalInfo = (title) => {
             // البحث في قائمة بيل أولاً
-            const beallJournal = beallList.includes(title);
-            const journal = scopusData.find(j => j['Source Title'] === title);
+            const beallJournal = beallListData.includes(title);
+            // البحث في القائمة السوداء المحلية
+            const blacklistJournal = !beallJournal && blacklistData.includes(title);
+            // البحث في سكوباس
+            const scopusJournal = !beallJournal && !blacklistJournal ? scopusData.find(j => j['Source Title'] === title) : null;
             
-            const isInBeall = isInBeallList(title) || beallJournal;
+            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
+            const isBeallList = isInBeallList(title) || beallJournal;
             
             let info = '';
             if (beallJournal) {
                 info = `
-⚠️ تحذير شديد: هذه المجلة في قائمة بيل للمجلات المفترسة!
+⚠️ تحذير: هذه المجلة في قائمة بيل للمجلات المفترسة!
 
 المجلة: ${title}
 الحالة: في قائمة بيل (مجلة مفترسة)
+تنبيه: يجب الحذر عند التعامل مع هذه المجلة
+                `;
+            } else if (blacklistJournal) {
+                info = `
+⚠️ تحذير شديد: هذه المجلة في القائمة السوداء الرسمية!
+
+المجلة: ${title}
+الحالة: في القائمة السوداء (مجلة وهمية)
 تنبيه: لا يمكن الاعتماد عليها للنشر العلمي أو الترقيات
                 `;
-            } else if (journal) {
-                const warning = isInBeall ? '⚠️ تحذير: هذه المجلة في قائمة بيل!\n' : '';
+            } else if (scopusJournal) {
+                const warning = (isBlacklisted || isBeallList) ? '⚠️ تحذير: هذه المجلة في قائمة محظورة!\n' : '';
                 info = `
-${warning}المجلة: ${journal['Source Title']}
-ISSN: ${journal['ISSN'] || 'غير متوفر'}
-EISSN: ${journal['EISSN'] || 'غير متوفر'}
-الناشر: ${journal['Publisher'] || 'غير معروف'}
-الحالة: ${journal['Active or Inactive'] || 'غير معروف'}
+${warning}المجلة: ${scopusJournal['Source Title']}
+ISSN: ${scopusJournal['ISSN'] || 'غير متوفر'}
+EISSN: ${scopusJournal['EISSN'] || 'غير متوفر'}
+الناشر: ${scopusJournal['Publisher'] || 'غير معروف'}
+الحالة: ${scopusJournal['Active or Inactive'] || 'غير معروف'}
                 `;
             }
             
             navigator.clipboard.writeText(info).then(() => {
-                alert(isInBeall ? '⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في قائمة بيل)' : 'تم نسخ معلومات المجلة');
+                if (beallJournal) {
+                    alert('⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في قائمة بيل)');
+                } else if (blacklistJournal) {
+                    alert('⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في القائمة السوداء)');
+                } else if (isBlacklisted || isBeallList) {
+                    alert('⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في قائمة محظورة)');
+                } else {
+                    alert('تم نسخ معلومات المجلة');
+                }
             });
         };
 
