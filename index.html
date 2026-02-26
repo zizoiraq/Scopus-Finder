@@ -1179,7 +1179,7 @@
             }
         }
 
-        // دالة تحميل قائمة بيل - معدلة لتدعم هيكل JSON المعقد
+        // دالة تحميل قائمة بيل
         async function loadBeallList() {
             try {
                 console.log('Loading Beall list...');
@@ -1190,53 +1190,8 @@
                     return;
                 }
                 
-                const data = await response.json();
-                console.log('Beall list raw data type:', typeof data);
-                console.log('Beall list keys:', Object.keys(data));
-                
-                // التحقق من هيكل البيانات
-                if (Array.isArray(data)) {
-                    // إذا كانت مصفوفة بسيطة
-                    beallListData = data;
-                    console.log('Beall list is a simple array');
-                } else if (typeof data === 'object' && data !== null) {
-                    // إذا كان الكائن يحتوي على مصفوفات
-                    beallListData = [];
-                    
-                    // دمج جميع المصفوفات في الكائن
-                    for (let key in data) {
-                        if (Array.isArray(data[key])) {
-                            console.log(`Adding ${data[key].length} items from key: "${key}"`);
-                            beallListData = beallListData.concat(data[key]);
-                        } else if (typeof data[key] === 'string') {
-                            console.log(`Adding single item from key: "${key}"`);
-                            beallListData.push(data[key]);
-                        }
-                    }
-                    
-                    // إذا كانت القيم عبارة عن نصوص وليست مصفوفات
-                    if (beallListData.length === 0) {
-                        beallListData = Object.values(data).filter(item => typeof item === 'string');
-                    }
-                    
-                    console.log(`Combined ${beallListData.length} journals from all sections`);
-                } else {
-                    console.warn('Unexpected Beall list data structure');
-                    beallListData = [];
-                }
-                
-                // إزالة التكرارات إن وجدت
-                const uniqueBeall = new Set();
-                beallListData = beallListData.filter(item => {
-                    if (uniqueBeall.has(item)) {
-                        return false;
-                    }
-                    uniqueBeall.add(item);
-                    return true;
-                });
-                
-                console.log(`Final Beall list count after removing duplicates: ${beallListData.length}`);
-                console.log('Sample Beall journals:', beallListData.slice(0, 3));
+                beallListData = await response.json();
+                console.log(`Loaded ${beallListData.length} journals from Beall's list`);
                 
             } catch (error) {
                 console.error('Error loading Beall list:', error);
@@ -1244,7 +1199,7 @@
             }
         }
 
-        // دالة حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
+        // دالة حساب مسافة ليفنشتاين (Levenshtein distance)
         function levenshteinDistance(a, b) {
             if (a.length === 0) return b.length;
             if (b.length === 0) return a.length;
@@ -1271,6 +1226,66 @@
                 }
             }
             return matrix[b.length][a.length];
+        }
+
+        // دالة التحقق من تطابق كلمة مع سماحية 3 أحرف
+        function isWordMatch(searchWord, titleWord) {
+            const search = searchWord.toLowerCase();
+            const title = titleWord.toLowerCase();
+            
+            // تطابق تام
+            if (title === search) return true;
+            
+            // كلمة قصيرة (أقل من 4 أحرف) لازم تطابق تام
+            if (search.length < 4) return false;
+            
+            // مسافة ليفنشتاين بحد أقصى 3 أحرف
+            const distance = levenshteinDistance(search, title);
+            return distance <= 3;
+        }
+
+        // دالة البحث الذكية - كل كلمة في البحث لازم تلقى مطابق لها في العنوان
+        function findMatchingJournal(searchTerm, journalTitle) {
+            if (!searchTerm || !journalTitle) return false;
+            
+            const searchWords = searchTerm.split(' ').filter(w => w.length > 0);
+            const titleWords = journalTitle.split(' ');
+            
+            // الكلمات القصيرة التي يمكن تجاهلها (حروف جر وأدوات)
+            const shortWords = ['of', 'the', 'in', 'on', 'at', 'for', 'to', 'and', 'or', 'a', 'an', 'is', 'are'];
+            
+            // نسخة من عنوان المجلة للبحث (نقدر نشطب الكلمات المستخدمة)
+            let availableTitleWords = [...titleWords];
+            
+            for (let searchWord of searchWords) {
+                // إذا كانت الكلمة قصيرة (حرف جر)، نتجاهلها
+                if (shortWords.includes(searchWord.toLowerCase())) {
+                    continue;
+                }
+                
+                let foundMatch = false;
+                let matchedIndex = -1;
+                
+                for (let i = 0; i < availableTitleWords.length; i++) {
+                    if (isWordMatch(searchWord, availableTitleWords[i])) {
+                        foundMatch = true;
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+                
+                // إذا ما لقينا مطابق لهذه الكلمة، المجلة غير مناسبة
+                if (!foundMatch) {
+                    return false;
+                }
+                
+                // نشطب الكلمة عشان ما تستخدم مرتين
+                if (matchedIndex !== -1) {
+                    availableTitleWords.splice(matchedIndex, 1);
+                }
+            }
+            
+            return true;
         }
 
         // دالة التحقق من وجود المجلة في القائمة السوداء المحلية
@@ -1508,7 +1523,7 @@
             }
         };
 
-        // دالة البحث المعدلة - تبحث في جميع القوائم
+        // دالة البحث المعدلة - تستخدم findMatchingJournal الذكية
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1526,69 +1541,54 @@
             // أولاً: البحث في قائمة بيل
             let beallResults = [];
             if (searchTerm && beallListData.length > 0) {
-                const searchLower = searchTerm.toLowerCase();
-                beallResults = beallListData.filter(beallTitle => {
-                    if (typeof beallTitle !== 'string') return false;
-                    const titleLower = beallTitle.toLowerCase();
-                    return titleLower.includes(searchLower) || 
-                           searchLower.includes(titleLower) ||
-                           levenshteinDistance(searchLower, titleLower) <= 3;
-                }).map(beallTitle => ({
-                    'Source Title': beallTitle,
-                    'Source Type': 'Journal',
-                    'Publisher': 'غير معروف (قائمة بيل)',
-                    'Active or Inactive': 'Inactive',
-                    'Titles Discontinued by Scopus': 'No',
-                    'isBlacklisted': false,
-                    'isBeallList': true,
-                    'fromBlacklist': false,
-                    'fromBeallList': true
-                }));
+                beallResults = beallListData
+                    .filter(beallTitle => findMatchingJournal(searchTerm, beallTitle))
+                    .map(beallTitle => ({
+                        'Source Title': beallTitle,
+                        'Source Type': 'Journal',
+                        'Publisher': 'غير معروف (قائمة بيل)',
+                        'Active or Inactive': 'Inactive',
+                        'Titles Discontinued by Scopus': 'No',
+                        'isBlacklisted': false,
+                        'isBeallList': true,
+                        'fromBlacklist': false,
+                        'fromBeallList': true
+                    }));
             }
 
             // ثانياً: البحث في القائمة السوداء المحلية
             let blacklistResults = [];
             if (searchTerm && blacklistData.length > 0) {
-                const searchLower = searchTerm.toLowerCase();
-                blacklistResults = blacklistData.filter(blackTitle => {
-                    if (typeof blackTitle !== 'string') return false;
-                    const titleLower = blackTitle.toLowerCase();
-                    return titleLower.includes(searchLower) || 
-                           searchLower.includes(titleLower) ||
-                           levenshteinDistance(searchLower, titleLower) <= 3;
-                }).map(blackTitle => ({
-                    'Source Title': blackTitle,
-                    'Source Type': 'Journal',
-                    'Publisher': 'غير معروف (قائمة سوداء محلية)',
-                    'Active or Inactive': 'Inactive',
-                    'Titles Discontinued by Scopus': 'No',
-                    'isBlacklisted': true,
-                    'isBeallList': false,
-                    'fromBlacklist': true,
-                    'fromBeallList': false
-                }));
+                blacklistResults = blacklistData
+                    .filter(blackTitle => findMatchingJournal(searchTerm, blackTitle))
+                    .map(blackTitle => ({
+                        'Source Title': blackTitle,
+                        'Source Type': 'Journal',
+                        'Publisher': 'غير معروف (قائمة سوداء محلية)',
+                        'Active or Inactive': 'Inactive',
+                        'Titles Discontinued by Scopus': 'No',
+                        'isBlacklisted': true,
+                        'isBeallList': false,
+                        'fromBlacklist': true,
+                        'fromBeallList': false
+                    }));
             }
 
             // ثالثاً: البحث في سكوباس
             let scopusResults = [];
             if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
-                scopusResults = scopusData.filter(journal => {
-                    const title = (journal['Source Title'] || '').toLowerCase();
-                    const issn = (journal['ISSN'] || '').toLowerCase();
-                    const eissn = (journal['EISSN'] || '').toLowerCase();
-                    const publisher = (journal['Publisher'] || '').toLowerCase();
-                    
-                    return title.includes(searchLower) || issn.includes(searchLower) || 
-                           eissn.includes(searchLower) || publisher.includes(searchLower) ||
-                           levenshteinDistance(searchLower, title) <= 3;
-                }).map(journal => ({
-                    ...journal,
-                    'isBlacklisted': isInBlacklist(journal['Source Title']),
-                    'isBeallList': isInBeallList(journal['Source Title']),
-                    'fromBlacklist': false,
-                    'fromBeallList': false
-                }));
+                scopusResults = scopusData
+                    .filter(journal => {
+                        const title = journal['Source Title'] || '';
+                        return findMatchingJournal(searchTerm, title);
+                    })
+                    .map(journal => ({
+                        ...journal,
+                        'isBlacklisted': isInBlacklist(journal['Source Title']),
+                        'isBeallList': isInBeallList(journal['Source Title']),
+                        'fromBlacklist': false,
+                        'fromBeallList': false
+                    }));
             } else {
                 // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس مع علامات القوائم
                 scopusResults = scopusData.map(journal => ({
