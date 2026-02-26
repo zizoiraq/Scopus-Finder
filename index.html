@@ -389,6 +389,51 @@
             margin-right: 10px;
         }
 
+        /* رسالة خاصة بالمجلة داخل البطاقة */
+        .coverage-status {
+            font-size: 0.85rem;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .coverage-current {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 2px solid #2196f3;
+        }
+
+        .coverage-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border: 2px solid #ff9800;
+            animation: pulse-warning 2s infinite;
+        }
+
+        .coverage-expired {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #f44336;
+            animation: pulse-danger 2s infinite;
+        }
+
+        @keyframes pulse-warning {
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+        }
+
+        @keyframes pulse-danger {
+            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+        }
+
         .results-header {
             display: flex;
             justify-content: space-between;
@@ -976,7 +1021,7 @@
             <!-- رسالة التحديث السنوي - كبيرة وواضحة -->
             <div class="update-message" id="updateMessage">
                 <i class="fas fa-calendar-alt"></i>
-                <span>📢 تنبيه: آخر سنتين للتغطية هما <span class="update-badge">2025-2026</span></span>
+                <span>📢 آخر سنتين للتغطية في سكوباس: <span class="update-badge">2025-2026</span></span>
                 <i class="fas fa-bell warning-icon"></i>
             </div>
 
@@ -1231,7 +1276,7 @@
             }
         }
 
-        // دالة تحميل قائمة بيل - معدلة لتدعم هيكل JSON المعقد
+        // دالة تحميل قائمة بيل
         async function loadBeallList() {
             try {
                 console.log('Loading Beall list...');
@@ -1242,53 +1287,8 @@
                     return;
                 }
                 
-                const data = await response.json();
-                console.log('Beall list raw data type:', typeof data);
-                console.log('Beall list keys:', Object.keys(data));
-                
-                // التحقق من هيكل البيانات
-                if (Array.isArray(data)) {
-                    // إذا كانت مصفوفة بسيطة
-                    beallListData = data;
-                    console.log('Beall list is a simple array');
-                } else if (typeof data === 'object' && data !== null) {
-                    // إذا كان الكائن يحتوي على مصفوفات
-                    beallListData = [];
-                    
-                    // دمج جميع المصفوفات في الكائن
-                    for (let key in data) {
-                        if (Array.isArray(data[key])) {
-                            console.log(`Adding ${data[key].length} items from key: "${key}"`);
-                            beallListData = beallListData.concat(data[key]);
-                        } else if (typeof data[key] === 'string') {
-                            console.log(`Adding single item from key: "${key}"`);
-                            beallListData.push(data[key]);
-                        }
-                    }
-                    
-                    // إذا كانت القيم عبارة عن نصوص وليست مصفوفات
-                    if (beallListData.length === 0) {
-                        beallListData = Object.values(data).filter(item => typeof item === 'string');
-                    }
-                    
-                    console.log(`Combined ${beallListData.length} journals from all sections`);
-                } else {
-                    console.warn('Unexpected Beall list data structure');
-                    beallListData = [];
-                }
-                
-                // إزالة التكرارات إن وجدت
-                const uniqueBeall = new Set();
-                beallListData = beallListData.filter(item => {
-                    if (uniqueBeall.has(item)) {
-                        return false;
-                    }
-                    uniqueBeall.add(item);
-                    return true;
-                });
-                
-                console.log(`Final Beall list count after removing duplicates: ${beallListData.length}`);
-                console.log('Sample Beall journals:', beallListData.slice(0, 3));
+                beallListData = await response.json();
+                console.log(`Loaded ${beallListData.length} journals from Beall's list`);
                 
             } catch (error) {
                 console.error('Error loading Beall list:', error);
@@ -1296,7 +1296,7 @@
             }
         }
 
-        // دالة حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
+        // دالة حساب مسافة ليفنشتاين (Levenshtein distance)
         function levenshteinDistance(a, b) {
             if (a.length === 0) return b.length;
             if (b.length === 0) return a.length;
@@ -1323,6 +1323,69 @@
                 }
             }
             return matrix[b.length][a.length];
+        }
+
+        // دالة التحقق من تطابق تام للبحث مع عنوان المجلة
+        function isExactMatch(searchTerm, journalTitle) {
+            if (!searchTerm || !journalTitle) return false;
+            
+            // إذا كان البحث رقماً (ISSN/EISSN)
+            if (searchTerm.match(/^\d{4}-?\d{3}[\dxX]$/i)) {
+                const cleanSearch = searchTerm.replace(/-/g, '').toLowerCase();
+                const cleanTitle = journalTitle.replace(/-/g, '').toLowerCase();
+                return cleanTitle === cleanSearch || cleanTitle.includes(cleanSearch);
+            }
+            
+            const searchWords = searchTerm.toLowerCase().split(' ').filter(w => w.length > 0);
+            const titleWords = journalTitle.toLowerCase().split(' ');
+            
+            // كل كلمة في البحث يجب أن تجد تطابقاً في العنوان
+            for (let searchWord of searchWords) {
+                let found = false;
+                
+                for (let titleWord of titleWords) {
+                    // تطابق تام
+                    if (titleWord === searchWord) {
+                        found = true;
+                        break;
+                    }
+                    
+                    // مسافة ليفنشتاين بحد أقصى 3 أحرف (للكلمات الطويلة فقط)
+                    if (searchWord.length >= 4 && titleWord.length >= 4) {
+                        const distance = levenshteinDistance(searchWord, titleWord);
+                        if (distance <= 3) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // إذا لم نجد تطابقاً لهذه الكلمة، المجلة غير مطابقة
+                if (!found) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // دالة استخراج آخر سنة تغطية
+        function getLastCoverageYear(coverageString) {
+            if (!coverageString) return null;
+            const matches = coverageString.match(/(\d{4})/g);
+            if (matches && matches.length > 0) {
+                return parseInt(matches[matches.length - 1]);
+            }
+            return null;
+        }
+
+        // دالة التحقق من وجود المجلة في السنتين الأخيرتين
+        function isInRecentYears(journal) {
+            if (!journal || !journal['Coverage']) return false;
+            const lastYear = getLastCoverageYear(journal['Coverage']);
+            if (!lastYear) return false;
+            const currentYear = new Date().getFullYear(); // 2026
+            return lastYear >= currentYear - 1; // 2025 أو 2026
         }
 
         // دالة التحقق من وجود المجلة في القائمة السوداء المحلية
@@ -1560,7 +1623,7 @@
             }
         };
 
-        // دالة البحث المعدلة - تبحث في جميع القوائم
+        // دالة البحث المعدلة - تعتمد على التطابق التام لكل الكلمات
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1578,13 +1641,9 @@
             // أولاً: البحث في قائمة بيل
             let beallResults = [];
             if (searchTerm && beallListData.length > 0) {
-                const searchLower = searchTerm.toLowerCase();
                 beallResults = beallListData.filter(beallTitle => {
                     if (typeof beallTitle !== 'string') return false;
-                    const titleLower = beallTitle.toLowerCase();
-                    return titleLower.includes(searchLower) || 
-                           searchLower.includes(titleLower) ||
-                           levenshteinDistance(searchLower, titleLower) <= 3;
+                    return isExactMatch(searchTerm, beallTitle);
                 }).map(beallTitle => ({
                     'Source Title': beallTitle,
                     'Source Type': 'Journal',
@@ -1601,13 +1660,9 @@
             // ثانياً: البحث في القائمة السوداء المحلية
             let blacklistResults = [];
             if (searchTerm && blacklistData.length > 0) {
-                const searchLower = searchTerm.toLowerCase();
                 blacklistResults = blacklistData.filter(blackTitle => {
                     if (typeof blackTitle !== 'string') return false;
-                    const titleLower = blackTitle.toLowerCase();
-                    return titleLower.includes(searchLower) || 
-                           searchLower.includes(titleLower) ||
-                           levenshteinDistance(searchLower, titleLower) <= 3;
+                    return isExactMatch(searchTerm, blackTitle);
                 }).map(blackTitle => ({
                     'Source Title': blackTitle,
                     'Source Type': 'Journal',
@@ -1624,16 +1679,9 @@
             // ثالثاً: البحث في سكوباس
             let scopusResults = [];
             if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
                 scopusResults = scopusData.filter(journal => {
-                    const title = (journal['Source Title'] || '').toLowerCase();
-                    const issn = (journal['ISSN'] || '').toLowerCase();
-                    const eissn = (journal['EISSN'] || '').toLowerCase();
-                    const publisher = (journal['Publisher'] || '').toLowerCase();
-                    
-                    return title.includes(searchLower) || issn.includes(searchLower) || 
-                           eissn.includes(searchLower) || publisher.includes(searchLower) ||
-                           levenshteinDistance(searchLower, title) <= 3;
+                    const title = journal['Source Title'] || '';
+                    return isExactMatch(searchTerm, title);
                 }).map(journal => ({
                     ...journal,
                     'isBlacklisted': isInBlacklist(journal['Source Title']),
@@ -1700,7 +1748,7 @@
                 return true;
             });
 
-            // إزالة التكرارات (إذا ظهرت نفس المجلة في قائمة بيل والقائمة السوداء وسكوباس)
+            // إزالة التكرارات
             const uniqueTitles = new Set();
             filteredData = filteredData.filter(item => {
                 const title = item['Source Title'];
@@ -1782,6 +1830,30 @@
                         `;
                     }
                     
+                    // التحقق من وجود المجلة في السنتين الأخيرتين
+                    const inRecentYears = !journal.fromBeallList && !journal.fromBlacklist ? isInRecentYears(journal) : false;
+                    const lastYear = !journal.fromBeallList && !journal.fromBlacklist ? getLastCoverageYear(journal['Coverage']) : null;
+                    
+                    // رسالة حالة التغطية
+                    let coverageHtml = '';
+                    if (!journal.fromBeallList && !journal.fromBlacklist && lastYear) {
+                        if (inRecentYears) {
+                            coverageHtml = `
+                                <div class="coverage-status coverage-current">
+                                    <i class="fas fa-check-circle"></i>
+                                    ✅ هذه المجلة موجودة في سكوباس ${lastYear}
+                                </div>
+                            `;
+                        } else {
+                            coverageHtml = `
+                                <div class="coverage-status coverage-expired">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    ⚠️ هذه المجلة آخر تغطية لها ${lastYear} (غير موجودة في 2025-2026)
+                                </div>
+                            `;
+                        }
+                    }
+                    
                     return `
                         <div class="journal-card ${cardClass}">
                             ${badges}
@@ -1813,6 +1885,8 @@
                                     ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
                                 </div>
                             ` : ''}
+                            
+                            ${coverageHtml}
                             
                             ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBeallList && !journal.fromBlacklist ? `
                                 <div class="asjc-list">
@@ -1959,12 +2033,16 @@
                 `;
             } else if (scopusJournal) {
                 const warning = (isBlacklisted || isBeallList) ? '⚠️ تحذير: هذه المجلة في قائمة محظورة!\n' : '';
+                const lastYear = getLastCoverageYear(scopusJournal['Coverage']);
+                const inRecentYears = lastYear ? lastYear >= 2025 : false;
+                
                 info = `
 ${warning}المجلة: ${scopusJournal['Source Title']}
 ISSN: ${scopusJournal['ISSN'] || 'غير متوفر'}
 EISSN: ${scopusJournal['EISSN'] || 'غير متوفر'}
 الناشر: ${scopusJournal['Publisher'] || 'غير معروف'}
-الحالة: ${scopusJournal['Active or Inactive'] || 'غير معروف'}
+آخر تغطية: ${scopusJournal['Coverage'] || 'غير معروف'}
+الحالة: ${inRecentYears ? '✅ موجودة في 2025-2026' : '⚠️ غير موجودة في 2025-2026'}
                 `;
             }
             
