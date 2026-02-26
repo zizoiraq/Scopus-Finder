@@ -391,13 +391,13 @@
             position: relative;
         }
 
-        .journal-card.blacklisted {
+        .journal-card.in-beall-list {
             border-right-color: #dc3545;
             background: linear-gradient(45deg, #fff, #fff5f5);
             box-shadow: 0 5px 20px rgba(220, 53, 69, 0.2);
         }
 
-        .journal-card.blacklist-only {
+        .journal-card.beall-only {
             border-right-color: #dc3545;
             background: #fff5f5;
             border: 2px solid #dc3545;
@@ -417,7 +417,7 @@
             background: #fff3e0;
         }
 
-        .blacklist-badge {
+        .beall-badge {
             position: absolute;
             top: 10px;
             left: 10px;
@@ -463,7 +463,7 @@
             line-height: 1.4;
         }
 
-        .journal-card.blacklisted .journal-title {
+        .journal-card.in-beall-list .journal-title {
             color: #dc3545;
         }
 
@@ -672,7 +672,7 @@
             color: #666;
         }
 
-        .blacklist-warning {
+        .beall-warning {
             background: #dc3545;
             color: white;
             padding: 1rem;
@@ -844,8 +844,8 @@
             </div>
             <div class="stat-card" style="background: #fff5f5; border: 2px solid #dc3545;">
                 <i class="fas fa-ban" style="color: #dc3545;"></i>
-                <div class="stat-number" id="blacklistedCount">0</div>
-                <div class="stat-label">في القائمة السوداء</div>
+                <div class="stat-number" id="beallListCount">0</div>
+                <div class="stat-label">في قائمة بيل</div>
             </div>
         </div>
 
@@ -995,7 +995,7 @@
 
         // Global variables
         let scopusData = [];
-        let blacklistData = [];
+        let beallList = []; // Renamed from blacklistData
         let filteredData = [];
         let selectedASJC = new Set();
         let previousSearchTerm = '';
@@ -1011,7 +1011,7 @@
             const errorScreen = document.getElementById('errorScreen');
             
             try {
-                // تحميل ملف سكوباس
+                // Load Scopus file
                 const response = await fetch('data/ext_list_Jan_2026.xlsx');
                 
                 if (!response.ok) {
@@ -1045,22 +1045,22 @@
                     scopusData.push(journal);
                 }
 
-                // تحميل القائمة السوداء
-                await loadBlacklist();
+                // Load Beall's List
+                await loadBeallList();
 
-                // إخفاء شاشة التحميل
+                // Hide loading screen
                 loadingScreen.style.display = 'none';
                 
-                // إظهار المحتوى
+                // Show content
                 document.getElementById('dbStats').style.display = 'grid';
                 document.getElementById('searchSection').style.display = 'block';
                 document.getElementById('resultsSection').style.display = 'block';
 
-                // تحديث الإحصائيات
+                // Update stats
                 updateStats();
                 loadASJCTags();
                 
-                // عرض جميع البيانات في البداية
+                // Show all data initially
                 filteredData = [...scopusData];
                 displayJournals();
 
@@ -1077,24 +1077,24 @@
             }
         }
 
-        // دالة تحميل القائمة السوداء
-        async function loadBlacklist() {
+        // Function to load Beall's List
+        async function loadBeallList() {
             try {
-                const response = await fetch('data/blacklist.json');
+                const response = await fetch('data/beall_list.json'); // Make sure this file exists
                 if (!response.ok) {
-                    console.warn('Blacklist file not found');
-                    blacklistData = [];
+                    console.warn('Beall list file not found');
+                    beallList = [];
                     return;
                 }
-                blacklistData = await response.json();
-                console.log(`Loaded ${blacklistData.length} blacklisted journals`);
+                beallList = await response.json();
+                console.log(`Loaded ${beallList.length} journals from Beall's list`);
             } catch (error) {
-                console.error('Error loading blacklist:', error);
-                blacklistData = [];
+                console.error('Error loading Beall list:', error);
+                beallList = [];
             }
         }
 
-        // دالة حساب مسافة ليفنشتاين (Levenshtein distance) للكشف عن الأخطاء الإملائية
+        // Function to calculate Levenshtein distance
         function levenshteinDistance(a, b) {
             if (a.length === 0) return b.length;
             if (b.length === 0) return a.length;
@@ -1123,7 +1123,7 @@
             return matrix[b.length][a.length];
         }
 
-        // دالة البحث عن اقرب تطابق مع تصحيح الأخطاء الإملائية
+        // Function to find closest match with spelling correction
         function findClosestMatch(searchTerm, maxDistance = 3) {
             if (!searchTerm || searchTerm.length < 3) return null;
             
@@ -1131,8 +1131,8 @@
             let bestMatch = null;
             let bestDistance = Infinity;
             
-            // البحث في القائمة السوداء أولاً
-            blacklistData.forEach(title => {
+            // Search in Beall's list first
+            beallList.forEach(title => {
                 const titleLower = title.toLowerCase();
                 const distance = levenshteinDistance(searchLower, titleLower);
                 
@@ -1140,13 +1140,13 @@
                     bestDistance = distance;
                     bestMatch = {
                         title: title,
-                        type: 'blacklist',
+                        type: 'beall',
                         distance: distance
                     };
                 }
             });
             
-            // البحث في مجلات سكوباس
+            // Search in Scopus journals
             scopusData.forEach(journal => {
                 const title = (journal['Source Title'] || '').toLowerCase();
                 const distance = levenshteinDistance(searchLower, title);
@@ -1164,15 +1164,15 @@
             return bestMatch;
         }
 
-        // دالة التحقق من وجود المجلة في القائمة السوداء
-        function isInBlacklist(journalTitle) {
-            if (!journalTitle || !blacklistData.length) return false;
+        // Function to check if a journal is in Beall's list
+        function isInBeallList(journalTitle) {
+            if (!journalTitle || !beallList.length) return false;
             
             const titleLower = journalTitle.toLowerCase().trim();
-            return blacklistData.some(blackTitle => 
-                blackTitle.toLowerCase().trim() === titleLower ||
-                blackTitle.toLowerCase().includes(titleLower) ||
-                titleLower.includes(blackTitle.toLowerCase())
+            return beallList.some(beallTitle => 
+                beallTitle.toLowerCase().trim() === titleLower ||
+                beallTitle.toLowerCase().includes(titleLower) ||
+                titleLower.includes(beallTitle.toLowerCase())
             );
         }
 
@@ -1181,13 +1181,13 @@
             const active = scopusData.filter(j => j['Active or Inactive'] === 'Active').length;
             const discontinued = scopusData.filter(j => j['Titles Discontinued by Scopus'] === 'Yes').length;
             const publishers = new Set(scopusData.map(j => j['Publisher']).filter(p => p)).size;
-            const blacklisted = blacklistData.length;
+            const beallCount = beallList.length;
 
             document.getElementById('totalJournals').textContent = total.toLocaleString();
             document.getElementById('activeJournals').textContent = active.toLocaleString();
             document.getElementById('discontinuedJournals').textContent = discontinued.toLocaleString();
             document.getElementById('publishersCount').textContent = publishers.toLocaleString();
-            document.getElementById('blacklistedCount').textContent = blacklisted.toLocaleString();
+            document.getElementById('beallListCount').textContent = beallCount.toLocaleString();
             
             document.getElementById('globalStats').innerHTML = `
                 <i class="fas fa-database"></i>
@@ -1264,7 +1264,7 @@
             return 'all';
         }
 
-        // دالة البحث المعدلة - تبحث في القائمة السوداء أولاً
+        // Modified search function - searches Beall's list first
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
@@ -1273,32 +1273,32 @@
             const topLevel = document.getElementById('topLevelFilter').value;
             const tab = getActiveTab();
 
-            // إخفاء اقتراح التصحيح السابق
+            // Hide previous suggestion
             document.getElementById('suggestionBox')?.remove();
             suggestedCorrection = null;
 
-            // أولاً: البحث في القائمة السوداء
-            let blacklistResults = [];
-            if (searchTerm && blacklistData.length > 0) {
+            // First: Search in Beall's list
+            let beallResults = [];
+            if (searchTerm && beallList.length > 0) {
                 const searchLower = searchTerm.toLowerCase();
-                blacklistResults = blacklistData.filter(blackTitle => {
-                    const titleLower = blackTitle.toLowerCase();
-                    // تطابق تام أو جزئي
+                beallResults = beallList.filter(beallTitle => {
+                    const titleLower = beallTitle.toLowerCase();
+                    // Exact or partial match
                     return titleLower.includes(searchLower) || 
                            searchLower.includes(titleLower) ||
                            levenshteinDistance(searchLower, titleLower) <= 3;
-                }).map(blackTitle => ({
-                    'Source Title': blackTitle,
+                }).map(beallTitle => ({
+                    'Source Title': beallTitle,
                     'Source Type': 'Journal',
-                    'Publisher': 'غير معروف (قائمة سوداء)',
+                    'Publisher': 'غير معروف (قائمة بيل)',
                     'Active or Inactive': 'Inactive',
                     'Titles Discontinued by Scopus': 'No',
-                    'isBlacklisted': true,
-                    'fromBlacklist': true
+                    'isInBeallList': true,
+                    'fromBeallList': true
                 }));
             }
 
-            // ثانياً: البحث في سكوباس
+            // Second: Search in Scopus
             let scopusResults = [];
             if (searchTerm) {
                 const searchLower = searchTerm.toLowerCase();
@@ -1308,37 +1308,37 @@
                     const eissn = (journal['EISSN'] || '').toLowerCase();
                     const publisher = (journal['Publisher'] || '').toLowerCase();
                     
-                    // تطابق تام
+                    // Exact match
                     if (title.includes(searchLower) || issn.includes(searchLower) || 
                         eissn.includes(searchLower) || publisher.includes(searchLower)) {
                         return true;
                     }
                     
-                    // تطابق تقريبي (fuzzy search)
+                    // Fuzzy match
                     const distance = levenshteinDistance(searchLower, title);
                     return distance <= 3;
                 }).map(journal => ({
                     ...journal,
-                    'isBlacklisted': isInBlacklist(journal['Source Title']),
-                    'fromBlacklist': false
+                    'isInBeallList': isInBeallList(journal['Source Title']),
+                    'fromBeallList': false
                 }));
             } else {
-                // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس
+                // If no search term, show all Scopus journals
                 scopusResults = scopusData.map(journal => ({
                     ...journal,
-                    'isBlacklisted': isInBlacklist(journal['Source Title']),
-                    'fromBlacklist': false
+                    'isInBeallList': isInBeallList(journal['Source Title']),
+                    'fromBeallList': false
                 }));
             }
 
-            // دمج النتائج (القائمة السوداء أولاً)
-            filteredData = [...blacklistResults, ...scopusResults];
+            // Merge results (Beall's list first)
+            filteredData = [...beallResults, ...scopusResults];
 
-            // تطبيق الفلاتر الأخرى على نتائج سكوباس فقط (وليس على القائمة السوداء)
+            // Apply other filters to Scopus results only (not to Beall's list)
             filteredData = filteredData.filter(item => {
-                if (item.fromBlacklist) return true; // نتائج القائمة السوداء تظهر دائماً
+                if (item.fromBeallList) return true; // Beall's list results always show
 
-                // تطبيق الفلاتر على مجلات سكوباس فقط
+                // Apply filters to Scopus journals only
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
                         if (!item['Titles Discontinued by Scopus']) return false;
@@ -1380,7 +1380,7 @@
                 return true;
             });
 
-            // إزالة التكرارات (إذا ظهرت نفس المجلة في القائمة السوداء وسكوباس)
+            // Remove duplicates (if the same journal appears in both Beall's list and Scopus)
             const uniqueTitles = new Set();
             filteredData = filteredData.filter(item => {
                 const title = item['Source Title'];
@@ -1391,7 +1391,7 @@
                 return true;
             });
 
-            // إذا لم توجد نتائج وكان هناك خطأ إملائي محتمل
+            // If no results and possible spelling mistake
             if (filteredData.length === 0 && searchTerm.length >= 3) {
                 const closestMatch = findClosestMatch(searchTerm);
                 if (closestMatch) {
@@ -1403,7 +1403,7 @@
             displayJournals();
         }
 
-        // دالة عرض اقتراح التصحيح الإملائي
+        // Function to show spelling suggestion
         function showSpellingSuggestion(original, suggestion) {
             const searchSection = document.querySelector('.search-section');
             const suggestionBox = document.createElement('div');
@@ -1431,8 +1431,8 @@
                     <span style="color: #856404; font-size: 0.9rem; margin-right: 0.5rem;">
                         (دقة التطابق: ${matchPercentage}%)
                     </span>
-                    ${suggestion.type === 'blacklist' ? 
-                        '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في القائمة السوداء</span>' : 
+                    ${suggestion.type === 'beall' ? 
+                        '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في قائمة بيل</span>' : 
                         ''}
                 </div>
                 <div>
@@ -1448,7 +1448,7 @@
             searchSection.insertBefore(suggestionBox, document.querySelector('.filters-grid'));
         }
 
-        // دالة استخدام التصحيح المقترح
+        // Function to use suggested correction
         window.useSuggestedCorrection = function() {
             if (suggestedCorrection) {
                 document.getElementById('searchInput').value = suggestedCorrection.title;
@@ -1472,19 +1472,19 @@
                 grid.innerHTML = filteredData.map(journal => {
                     const isActive = journal['Active or Inactive'] === 'Active';
                     const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
-                    const isBlacklisted = journal.isBlacklisted || journal.fromBlacklist;
+                    const isInBeall = journal.isInBeallList || journal.fromBeallList;
                     
                     let cardClass = '';
-                    if (journal.fromBlacklist) {
-                        cardClass = 'blacklist-only';
+                    if (journal.fromBeallList) {
+                        cardClass = 'beall-only';
                     } else if (isDiscontinued) {
                         cardClass = 'discontinued';
                     } else if (!isActive) {
                         cardClass = 'inactive';
                     }
                     
-                    if (isBlacklisted && !journal.fromBlacklist) {
-                        cardClass += ' blacklisted';
+                    if (isInBeall && !journal.fromBeallList) {
+                        cardClass += ' in-beall-list';
                     }
                     
                     const issn = journal['ISSN'] || '';
@@ -1492,23 +1492,23 @@
                     
                     return `
                         <div class="journal-card ${cardClass}">
-                            ${isBlacklisted ? `
-                                <div class="blacklist-badge">
+                            ${isInBeall ? `
+                                <div class="beall-badge">
                                     <i class="fas fa-exclamation-triangle"></i>
-                                    ${journal.fromBlacklist ? 'مجلة وهمية - قائمة سوداء' : 'في القائمة السوداء'}
+                                    ${journal.fromBeallList ? 'مجلة في قائمة بيل' : 'محذرة: موجودة في قائمة بيل'}
                                 </div>
                             ` : ''}
                             
                             <div class="journal-header">
                                 <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
-                                ${!journal.fromBlacklist ? `
+                                ${!journal.fromBeallList ? `
                                     <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
                                         ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
                                     </span>
                                 ` : ''}
                             </div>
                             
-                            ${!journal.fromBlacklist ? `
+                            ${!journal.fromBeallList ? `
                                 <div class="journal-ids">
                                     ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
                                     ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
@@ -1519,7 +1519,7 @@
                                 <i class="fas fa-building"></i> ${journal['Publisher'] || 'ناشر غير معروف'}
                             </div>
                             
-                            ${!journal.fromBlacklist ? `
+                            ${!journal.fromBeallList ? `
                                 <div class="journal-metrics">
                                     ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
                                     ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
@@ -1527,7 +1527,7 @@
                                 </div>
                             ` : ''}
                             
-                            ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBlacklist ? `
+                            ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBeallList ? `
                                 <div class="asjc-list">
                                     ${journal['All Science Journal Classification Codes (ASJC)'].split(';').slice(0, 3).map(code => 
                                         `<span class="asjc-code">${code}</span>`
@@ -1541,7 +1541,7 @@
                                 <button class="btn btn-primary" onclick="showJournalDetails('${journal['Source Title'].replace(/'/g, "\\'")}')">
                                     <i class="fas fa-info-circle"></i> تفاصيل
                                 </button>
-                                <button class="btn ${isBlacklisted ? 'btn-danger' : 'btn-outline'}" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
+                                <button class="btn ${isInBeall ? 'btn-danger' : 'btn-outline'}" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
                                     <i class="fas fa-copy"></i> نسخ
                                 </button>
                             </div>
@@ -1551,32 +1551,32 @@
             }
 
             document.getElementById('resultsCount').textContent = 
-                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${(scopusData.length + blacklistData.length).toLocaleString()}`;
+                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${(scopusData.length + beallList.length).toLocaleString()}`;
         }
 
         window.showJournalDetails = (title) => {
-            // البحث في القائمة السوداء أولاً
-            const blacklistJournal = blacklistData.includes(title) ? { 'Source Title': title, 'fromBlacklist': true } : null;
-            const journal = blacklistJournal || scopusData.find(j => j['Source Title'] === title);
+            // Search in Beall's list first
+            const beallJournal = beallList.includes(title) ? { 'Source Title': title, 'fromBeallList': true } : null;
+            const journal = beallJournal || scopusData.find(j => j['Source Title'] === title);
             
             if (!journal) return;
 
-            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
+            const isInBeall = isInBeallList(title) || beallJournal;
             const modal = document.getElementById('journalModal');
             const detailDiv = document.getElementById('journalDetail');
             
             let html = '';
             
-            if (isBlacklisted) {
+            if (isInBeall) {
                 html += `
-                    <div class="blacklist-warning">
+                    <div class="beall-warning">
                         <i class="fas fa-exclamation-triangle"></i>
-                        ⚠️ تحذير شديد: هذه المجلة موجودة في القائمة السوداء للمجلات التجارية والمزيفة التابعة لوزارة التعليم العالي العراقية
+                        ⚠️ تحذير شديد: هذه المجلة موجودة في قائمة بيل (Beall's List) للمجلات المفترسة
                     </div>
                 `;
             }
             
-            if (blacklistJournal) {
+            if (beallJournal) {
                 html += `
                     <div class="detail-row">
                         <div class="detail-label">اسم المجلة:</div>
@@ -1584,11 +1584,11 @@
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">الحالة:</div>
-                        <div class="detail-value" style="color: #dc3545; font-weight: bold;">⚠️ في القائمة السوداء (مجلة وهمية)</div>
+                        <div class="detail-value" style="color: #dc3545; font-weight: bold;">⚠️ في قائمة بيل (مجلة مفترسة)</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">تحذير:</div>
-                        <div class="detail-value" style="color: #dc3545;">هذه المجلة غير معتمدة ولا يمكن النشر فيها للت promotions العلمية</div>
+                        <div class="detail-value" style="color: #dc3545;">هذه المجلة غير معتمدة ويجب تجنب النشر فيها</div>
                     </div>
                 `;
             } else {
@@ -1609,23 +1609,23 @@
         };
 
         window.copyJournalInfo = (title) => {
-            // البحث في القائمة السوداء أولاً
-            const blacklistJournal = blacklistData.includes(title);
+            // Search in Beall's list first
+            const beallJournal = beallList.includes(title);
             const journal = scopusData.find(j => j['Source Title'] === title);
             
-            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
+            const isInBeall = isInBeallList(title) || beallJournal;
             
             let info = '';
-            if (blacklistJournal) {
+            if (beallJournal) {
                 info = `
-⚠️ تحذير شديد: هذه المجلة في القائمة السوداء الرسمية!
+⚠️ تحذير شديد: هذه المجلة في قائمة بيل للمجلات المفترسة!
 
 المجلة: ${title}
-الحالة: في القائمة السوداء (مجلة وهمية)
+الحالة: في قائمة بيل (مجلة مفترسة)
 تنبيه: لا يمكن الاعتماد عليها للنشر العلمي أو الترقيات
                 `;
             } else if (journal) {
-                const warning = isBlacklisted ? '⚠️ تحذير: هذه المجلة في القائمة السوداء!\n' : '';
+                const warning = isInBeall ? '⚠️ تحذير: هذه المجلة في قائمة بيل!\n' : '';
                 info = `
 ${warning}المجلة: ${journal['Source Title']}
 ISSN: ${journal['ISSN'] || 'غير متوفر'}
@@ -1636,7 +1636,7 @@ EISSN: ${journal['EISSN'] || 'غير متوفر'}
             }
             
             navigator.clipboard.writeText(info).then(() => {
-                alert(isBlacklisted ? '⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في القائمة السوداء)' : 'تم نسخ معلومات المجلة');
+                alert(isInBeall ? '⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في قائمة بيل)' : 'تم نسخ معلومات المجلة');
             });
         };
 
