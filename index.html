@@ -888,17 +888,6 @@
                 grid-template-columns: 1fr;
             }
         }
-
-        /* مؤشر مصدر البيانات */
-        .source-badge {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            background: #e9ecef;
-            color: #495057;
-            margin-right: 0.5rem;
-            display: inline-block;
-        }
     </style>
 </head>
 <body>
@@ -1164,90 +1153,30 @@
                 const data = new Uint8Array(arrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
                 
-                // قائمة بأسماء جميع الشيتات المهمة
-                const sheetNames = [
-                    'Scopus Sources Jan. 2026',
-                    'Discontinued Titles Jan. 2026',
-                    'Serial Conf. Proc. with Profile',
-                    'All Conf. Proceedings Jun. 2025',
-                    'More Info. Medline',
-                    'ASJC Classification Codes',
-                    'Accepted Titles Jan. 2026'
-                ];
+                const mainSheet = workbook.Sheets['Scopus Sources Jan. 2026'];
+                if (!mainSheet) {
+                    throw new Error('Sheet not found');
+                }
+
+                const jsonData = XLSX.utils.sheet_to_json(mainSheet, { header: 1 });
+                const headers = jsonData[0];
                 
                 scopusData = [];
-                let totalEntries = 0;
-                
-                // قراءة كل شيت على حدة
-                sheetNames.forEach(sheetName => {
-                    const sheet = workbook.Sheets[sheetName];
-                    if (!sheet) {
-                        console.warn(`⚠️ Sheet not found: ${sheetName}`);
-                        return;
-                    }
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row.length === 0) continue;
                     
-                    console.log(`📖 Reading sheet: ${sheetName}`);
-                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                    
-                    if (jsonData.length === 0) {
-                        console.warn(`⚠️ Sheet is empty: ${sheetName}`);
-                        return;
-                    }
-                    
-                    const headers = jsonData[0];
-                    let sheetEntries = 0;
-                    
-                    for (let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        if (row.length === 0 || !row[0]) continue; // تخطي الصفوف الفارغة
-                        
-                        const journal = {
-                            'Source': sheetName, // إضافة مصدر البيانات
-                            'Sheet Name': sheetName
-                        };
-                        
-                        headers.forEach((header, index) => {
-                            if (header && row[index] !== undefined && row[index] !== null) {
-                                // توحيد أسماء الحقول المهمة
-                                let fieldName = header.toString().trim();
-                                
-                                // توحيد أسماء الحقول الرئيسية
-                                if (fieldName.includes('Source Title') || fieldName.includes('Title') || fieldName.includes('Journal Title') || fieldName.includes('Publication Title')) {
-                                    fieldName = 'Source Title';
-                                } else if (fieldName.includes('ISSN') && !fieldName.includes('EISSN') && !fieldName.includes('Online')) {
-                                    fieldName = 'ISSN';
-                                } else if (fieldName.includes('EISSN') || fieldName.includes('Online ISSN')) {
-                                    fieldName = 'EISSN';
-                                } else if (fieldName.includes('Publisher')) {
-                                    fieldName = 'Publisher';
-                                } else if (fieldName.includes('Coverage') || fieldName.includes('Coverage Years')) {
-                                    fieldName = 'Coverage';
-                                } else if (fieldName.includes('Source Type')) {
-                                    fieldName = 'Source Type';
-                                } else if (fieldName.includes('Open Access')) {
-                                    fieldName = 'Open Access Status';
-                                } else if (fieldName.includes('Active') || fieldName.includes('Status')) {
-                                    fieldName = 'Active or Inactive';
-                                } else if (fieldName.includes('ASJC') || fieldName.includes('Classification')) {
-                                    fieldName = 'All Science Journal Classification Codes (ASJC)';
-                                }
-                                
-                                journal[fieldName] = row[index];
-                            }
-                        });
-                        
-                        // التأكد من وجود اسم للمجلة
-                        if (journal['Source Title']) {
-                            scopusData.push(journal);
-                            sheetEntries++;
+                    const journal = {};
+                    headers.forEach((header, index) => {
+                        if (header && row[index] !== undefined) {
+                            journal[header] = row[index];
                         }
-                    }
+                    });
                     
-                    console.log(`   ✅ Added ${sheetEntries} entries from ${sheetName}`);
-                    totalEntries += sheetEntries;
-                });
+                    scopusData.push(journal);
+                }
                 
-                console.log(`🎉 Total loaded journals: ${scopusData.length} from all sheets`);
+                console.log(`Loaded ${scopusData.length} Scopus journals`);
 
                 // تحميل القائمة السوداء المحلية
                 await loadBlacklist();
@@ -1273,7 +1202,7 @@
                 displayJournals();
 
             } catch (error) {
-                console.error('❌ Error:', error);
+                console.error('Error:', error);
                 
                 loadingScreen.style.display = 'none';
                 errorScreen.style.display = 'block';
@@ -1451,8 +1380,7 @@
         // دالة استخراج آخر سنة تغطية
         function getLastCoverageYear(coverageString) {
             if (!coverageString) return null;
-            const coverage = coverageString.toString();
-            const matches = coverage.match(/(\d{4})/g);
+            const matches = coverageString.match(/(\d{4})/g);
             if (matches && matches.length > 0) {
                 return parseInt(matches[matches.length - 1]);
             }
@@ -1557,7 +1485,7 @@
         function updateStats() {
             const total = scopusData.length;
             const active = scopusData.filter(j => j['Active or Inactive'] === 'Active').length;
-            const discontinued = scopusData.filter(j => j['Titles Discontinued by Scopus'] === 'Yes' || j['Sheet Name'] === 'Discontinued Titles Jan. 2026').length;
+            const discontinued = scopusData.filter(j => j['Titles Discontinued by Scopus'] === 'Yes').length;
             const publishers = new Set(scopusData.map(j => j['Publisher']).filter(p => p)).size;
             const blacklisted = blacklistData.length;
             const beallCount = beallListData.length;
@@ -1571,7 +1499,7 @@
             
             document.getElementById('globalStats').innerHTML = `
                 <i class="fas fa-database"></i>
-                <span>${total.toLocaleString()} مصدر مفهرس (من ${document.querySelectorAll('.stat-card').length} شيتات)</span>
+                <span>${total.toLocaleString()} مصدر مفهرس</span>
             `;
         }
 
@@ -1735,7 +1663,6 @@
                     'Publisher': 'غير معروف (قائمة بيل)',
                     'Active or Inactive': 'Inactive',
                     'Titles Discontinued by Scopus': 'No',
-                    'Sheet Name': 'Beall List',
                     'isBlacklisted': false,
                     'isBeallList': true,
                     'fromBlacklist': false,
@@ -1755,7 +1682,6 @@
                     'Publisher': 'غير معروف (قائمة سوداء محلية)',
                     'Active or Inactive': 'Inactive',
                     'Titles Discontinued by Scopus': 'No',
-                    'Sheet Name': 'Blacklist',
                     'isBlacklisted': true,
                     'isBeallList': false,
                     'fromBlacklist': true,
@@ -1763,7 +1689,7 @@
                 }));
             }
 
-            // ثالثاً: البحث في سكوباس (من جميع الشيتات)
+            // ثالثاً: البحث في سكوباس
             let scopusResults = [];
             if (searchTerm) {
                 scopusResults = scopusData.filter(journal => {
@@ -1796,7 +1722,7 @@
 
                 if (status !== 'all') {
                     if (status === 'Discontinued') {
-                        if (!item['Titles Discontinued by Scopus'] && item['Sheet Name'] !== 'Discontinued Titles Jan. 2026') return false;
+                        if (!item['Titles Discontinued by Scopus']) return false;
                     } else {
                         if ((item['Active or Inactive'] || '') !== status) return false;
                     }
@@ -1829,8 +1755,8 @@
                     if (!hasASJC) return false;
                 }
 
-                if (tab === 'journals' && item['Source Type'] !== 'Journal' && !item['Source Type']?.includes('Journal')) return false;
-                if (tab === 'conferences' && !item['Source Type']?.includes('Conference')) return false;
+                if (tab === 'journals' && item['Source Type'] !== 'Journal') return false;
+                if (tab === 'conferences' && item['Source Type'] !== 'Conference Proceeding') return false;
 
                 return true;
             });
@@ -1887,7 +1813,7 @@
             } else {
                 grid.innerHTML = filteredData.map(journal => {
                     const isActive = journal['Active or Inactive'] === 'Active';
-                    const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes' || journal['Sheet Name'] === 'Discontinued Titles Jan. 2026';
+                    const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
                     const isBlacklisted = journal.isBlacklisted || journal.fromBlacklist;
                     const isBeallList = journal.isBeallList || journal.fromBeallList;
                     
@@ -1911,7 +1837,6 @@
                     
                     const issn = journal['ISSN'] || '';
                     const eissn = journal['EISSN'] || '';
-                    const sheetName = journal['Sheet Name'] || '';
                     
                     let badges = '';
                     if (isBeallList) {
@@ -1931,15 +1856,12 @@
                         `;
                     }
                     
-                    // إضافة شارة مصدر البيانات
-                    const sourceBadge = sheetName ? `<span class="source-badge">${sheetName}</span>` : '';
-                    
                     return `
                         <div class="journal-card ${cardClass}">
                             ${badges}
                             
                             <div class="journal-header" style="${(isBeallList || isBlacklisted) ? 'margin-left: 60px;' : ''}">
-                                <div class="journal-title">${journal['Source Title'] || 'غير معروف'} ${sourceBadge}</div>
+                                <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
                                 ${!journal.fromBeallList && !journal.fromBlacklist ? `
                                     <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
                                         ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
@@ -2061,16 +1983,8 @@
                     </div>
                 `;
             } else if (scopusJournal) {
-                // إضافة معلومات المصدر
-                html += `
-                    <div class="detail-row">
-                        <div class="detail-label">مصدر البيانات:</div>
-                        <div class="detail-value">${scopusJournal['Sheet Name'] || 'Scopus'}</div>
-                    </div>
-                `;
-                
                 for (let [key, value] of Object.entries(scopusJournal)) {
-                    if (value && key !== '' && key !== 'Sheet Name' && key !== 'Source') {
+                    if (value && key !== '') {
                         let valueColor = '';
                         if (key.includes('Open Access') && value === 'OA') {
                             valueColor = 'color: #28a745;';
@@ -2128,7 +2042,6 @@ ISSN: ${scopusJournal['ISSN'] || 'غير متوفر'}
 EISSN: ${scopusJournal['EISSN'] || 'غير متوفر'}
 الناشر: ${scopusJournal['Publisher'] || 'غير معروف'}
 آخر تغطية: ${scopusJournal['Coverage'] || 'غير معروف'}
-مصدر البيانات: ${scopusJournal['Sheet Name'] || 'Scopus'}
 الحالة: ${inRecentYears ? '✅ موجودة في 2025-2026' : '⚠️ غير موجودة في 2025-2026'}
                 `;
             }
