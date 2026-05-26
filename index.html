@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scopus Finder - دليل مجلات سكوباس الرسمي</title>
+    <title>Scopus Finder - دليل مجلات سكوباس الرسمي - تحديث مباشر من API</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- XLSX Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -109,118 +107,44 @@
             padding: 0 2rem;
         }
 
-        .loading-container {
-            background: white;
-            border-radius: 20px;
-            padding: 3rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #2a5298;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1.5rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-container h2 {
-            color: #1e3c72;
-            margin-bottom: 0.5rem;
-        }
-
-        .loading-container p {
-            color: #666;
-        }
-
-        .db-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-card i {
-            font-size: 2.5rem;
-            color: #2a5298;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1e3c72;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        .search-section {
+        .api-section {
             background: white;
             border-radius: 20px;
             padding: 2rem;
             margin-bottom: 2rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            position: relative;
         }
 
-        .search-tabs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 1rem;
+        .api-key-input {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
         }
 
-        .search-tab {
-            padding: 0.8rem 2rem;
-            border: none;
-            background: none;
-            font-family: 'Cairo', sans-serif;
+        .api-key-input label {
+            font-weight: 700;
+            color: #856404;
+            display: block;
+            margin-bottom: 0.5rem;
             font-size: 1rem;
-            font-weight: 600;
-            color: #666;
-            cursor: pointer;
-            border-radius: 50px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
-        .search-tab.active {
-            background: #2a5298;
-            color: white;
+        .api-key-input input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            font-family: monospace;
+            direction: ltr;
+            font-size: 0.9rem;
         }
 
         .search-box {
             display: flex;
             gap: 1rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .search-input-wrapper {
@@ -273,165 +197,58 @@
             box-shadow: 0 10px 20px rgba(42, 82, 152, 0.3);
         }
 
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-top: 1.5rem;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-radius: 15px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .filter-group label {
-            font-weight: 600;
-            color: #1e3c72;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .filter-select {
-            padding: 0.8rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-family: 'Cairo', sans-serif;
-            font-size: 0.95rem;
-            background: white;
-            cursor: pointer;
-        }
-
-        .asjc-search {
-            margin-top: 1rem;
-        }
-
-        .asjc-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: white;
-            border-radius: 10px;
-        }
-
-        .asjc-tag {
-            background: #e0e7ff;
-            color: #2a5298;
-            padding: 0.4rem 1rem;
-            border-radius: 50px;
+        .example-list {
             font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .example-list span {
+            background: #e9ecef;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            margin: 0 0.2rem;
             cursor: pointer;
             transition: all 0.3s;
-            border: 1px solid transparent;
+            display: inline-block;
         }
 
-        .asjc-tag:hover {
+        .example-list span:hover {
             background: #2a5298;
             color: white;
         }
 
-        .asjc-tag.selected {
-            background: #2a5298;
-            color: white;
-            border-color: #1e3c72;
-        }
-
-        /* رسالة التحديث السنوي - كبيرة وواضحة */
-        .update-message {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            margin-bottom: 1.5rem;
+        .loading-container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             text-align: center;
-            font-size: 1.2rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border: 2px solid #ffd700;
         }
 
-        .update-message i {
-            font-size: 1.8rem;
-            color: #ffd700;
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #2a5298;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
         }
 
-        .update-message .warning-icon {
-            color: #ffd700;
-            animation: bell-ring 2s infinite;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        @keyframes bell-ring {
-            0%, 100% { transform: rotate(0); }
-            10%, 30%, 50%, 70%, 90% { transform: rotate(10deg); }
-            20%, 40%, 60%, 80% { transform: rotate(-10deg); }
-        }
-
-        .update-badge {
-            background: #ffd700;
-            color: #1e3c72;
-            padding: 0.3rem 1rem;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            margin-right: 10px;
-        }
-
-        /* رسالة خاصة بالمجلة داخل البطاقة */
-        .coverage-status {
-            font-size: 0.85rem;
-            padding: 0.4rem 1rem;
-            border-radius: 50px;
-            margin: 0.5rem 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            width: fit-content;
-        }
-
-        .coverage-current {
-            background: #e3f2fd;
-            color: #0d47a1;
-            border: 2px solid #2196f3;
-        }
-
-        .coverage-warning {
-            background: #fff3e0;
-            color: #e65100;
-            border: 2px solid #ff9800;
-            animation: pulse-warning 2s infinite;
-        }
-
-        .coverage-expired {
-            background: #ffebee;
-            color: #c62828;
-            border: 2px solid #f44336;
-            animation: pulse-danger 2s infinite;
-        }
-
-        @keyframes pulse-warning {
-            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
-        }
-
-        @keyframes pulse-danger {
-            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1.5rem;
+            border-radius: 15px;
+            border-right: 4px solid #dc3545;
+            margin-bottom: 1rem;
         }
 
         .results-header {
@@ -449,23 +266,9 @@
             font-size: 1rem;
         }
 
-        .sort-options {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .sort-options select {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 50px;
-            font-family: 'Cairo', sans-serif;
-            background: white;
-        }
-
         .journals-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -477,32 +280,6 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             transition: all 0.3s;
             border-right: 4px solid #2a5298;
-            height: fit-content;
-            position: relative;
-        }
-
-        .journal-card.blacklisted {
-            border-right-color: #dc3545;
-            background: linear-gradient(45deg, #fff, #fff5f5);
-            box-shadow: 0 5px 20px rgba(220, 53, 69, 0.2);
-        }
-
-        .journal-card.beall-list {
-            border-right-color: #ff6b35;
-            background: linear-gradient(45deg, #fff, #fff0e6);
-            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.2);
-        }
-
-        .journal-card.blacklist-only {
-            border-right-color: #dc3545;
-            background: #fff5f5;
-            border: 2px solid #dc3545;
-        }
-
-        .journal-card.beall-only {
-            border-right-color: #ff6b35;
-            background: #fff0e6;
-            border: 2px solid #ff6b35;
         }
 
         .journal-card:hover {
@@ -510,186 +287,114 @@
             box-shadow: 0 15px 30px rgba(0,0,0,0.2);
         }
 
-        .journal-card.inactive {
-            border-right-color: #f44336;
-        }
-
-        .journal-card.discontinued {
-            border-right-color: #ff9800;
-            background: #fff3e0;
-        }
-
-        .blacklist-badge {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: #dc3545;
-            color: white;
-            padding: 0.3rem 1rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            z-index: 10;
-            box-shadow: 0 2px 10px rgba(220, 53, 69, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        .beall-badge {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: #ff6b35;
-            color: white;
-            padding: 0.3rem 1rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            z-index: 10;
-            box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        .journal-card.beall-only .beall-badge,
-        .journal-card.beall-list .beall-badge {
-            top: 10px;
-        }
-
-        .journal-card.blacklist-only .blacklist-badge,
-        .journal-card.blacklisted .blacklist-badge {
-            top: 10px;
-        }
-
-        .journal-card.beall-only.blacklist-only .beall-badge {
-            top: 10px;
-        }
-        .journal-card.beall-only.blacklist-only .blacklist-badge {
-            top: 60px;
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-            }
-        }
-
-        .journal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 1rem;
-            margin-left: 60px;
-        }
-
         .journal-title {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: #1e3c72;
-            flex: 1;
+            margin-bottom: 1rem;
             line-height: 1.4;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e0e0e0;
         }
 
-        .journal-card.blacklisted .journal-title {
-            color: #dc3545;
+        .journal-title i {
+            color: #2a5298;
+            margin-left: 0.5rem;
         }
 
-        .journal-card.beall-list .journal-title {
-            color: #ff6b35;
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin: 1rem 0;
         }
 
-        .status-badge {
-            padding: 0.3rem 0.8rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .status-badge.active {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .status-badge.inactive {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .status-badge.discontinued {
-            background: #fff3e0;
-            color: #e65100;
-        }
-
-        .journal-ids {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-            margin: 0.5rem 0;
+        .info-item {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 10px;
             font-size: 0.85rem;
-            color: #666;
         }
 
-        .journal-ids span {
+        .info-item strong {
+            color: #2a5298;
+            display: block;
+            font-size: 0.7rem;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+        }
+
+        .info-item span {
+            color: #333;
+            word-break: break-word;
+            direction: ltr;
+            display: inline-block;
+        }
+
+        .metrics-section {
             display: flex;
-            align-items: center;
-            gap: 5px;
+            gap: 0.8rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
         }
 
-        .journal-publisher {
+        .metric-box {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 0.8rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2a5298;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
             color: #666;
-            margin: 0.5rem 0;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
-            font-size: 0.9rem;
+            margin-top: 0.3rem;
         }
 
-        .journal-metrics {
+        .subjects-list {
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
-            margin: 0.8rem 0;
-            font-size: 0.85rem;
+            margin: 1rem 0;
         }
 
-        .metric {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: #f5f5f5;
-            padding: 0.2rem 0.6rem;
-            border-radius: 50px;
-        }
-
-        .metric i {
-            color: #2a5298;
-            font-size: 0.8rem;
-        }
-
-        .asjc-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.3rem;
-            margin: 0.8rem 0;
-        }
-
-        .asjc-code {
+        .subject-tag {
             background: #e3f2fd;
             color: #1565c0;
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
+        }
+
+        .coverage-status {
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            margin: 0.8rem 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .coverage-current {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 2px solid #2196f3;
+        }
+
+        .coverage-expired {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #f44336;
         }
 
         .journal-footer {
@@ -735,24 +440,6 @@
             color: white;
         }
 
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-warning {
-            background: #ff6b35;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #e54e1b;
-        }
-
         .modal {
             display: none;
             position: fixed;
@@ -774,7 +461,7 @@
             background: white;
             border-radius: 20px;
             padding: 2rem;
-            max-width: 600px;
+            max-width: 700px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -799,51 +486,19 @@
             color: #999;
         }
 
-        .journal-detail {
-            line-height: 1.8;
-        }
-
-        .detail-row {
-            display: flex;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            width: 150px;
-            color: #1e3c72;
-        }
-
-        .detail-value {
-            flex: 1;
-            color: #666;
-        }
-
-        .blacklist-warning {
-            background: #dc3545;
-            color: white;
+        .raw-data {
+            background: #2d2d2d;
+            color: #f8f8f2;
             padding: 1rem;
             border-radius: 10px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-        }
-
-        .beall-warning {
-            background: #ff6b35;
-            color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.7rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
         }
 
         .footer {
@@ -864,32 +519,6 @@
             margin-top: 1rem;
             font-size: 0.9rem;
             color: #ffd700;
-        }
-
-        .error-container {
-            background: white;
-            border-radius: 20px;
-            padding: 3rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            text-align: center;
-            display: none;
-        }
-
-        .error-container i {
-            font-size: 4rem;
-            color: #f44336;
-            margin-bottom: 1rem;
-        }
-
-        .error-container h2 {
-            color: #1e3c72;
-            margin-bottom: 0.5rem;
-        }
-
-        .error-container p {
-            color: #666;
-            margin-bottom: 1rem;
         }
 
         .scroll-top {
@@ -928,8 +557,8 @@
             .search-box {
                 flex-direction: column;
             }
-            
-            .filters-grid {
+
+            .info-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -946,7 +575,7 @@
                 <i class="fas fa-book-open"></i>
                 <div class="logo-text">
                     <h1>Scopus Finder</h1>
-                    <span>الدليل الرسمي لمجلات سكوباس - يناير 2026</span>
+                    <span>الدليل الرسمي لمجلات سكوباس - تحديث مباشر من API</span>
                 </div>
             </div>
             
@@ -959,140 +588,37 @@
 
             <div class="stats-badge" id="globalStats">
                 <i class="fas fa-database"></i>
-                <span>جاري التحميل...</span>
+                <span>Scopus API</span>
             </div>
         </div>
     </header>
 
     <div class="main-container">
-        <!-- Loading Screen -->
-        <div class="loading-container" id="loadingScreen">
-            <div class="spinner"></div>
-            <h2>جاري تحميل قاعدة البيانات</h2>
-            <p>الرجاء الانتظار قليلاً...</p>
-        </div>
-
-        <!-- Error Screen -->
-        <div class="error-container" id="errorScreen">
-            <i class="fas fa-exclamation-circle"></i>
-            <h2>عذراً، حدث خطأ في التحميل</h2>
-            <p>لم نتمكن من العثور على ملف البيانات</p>
-            <button class="btn btn-primary" onclick="location.reload()">
-                <i class="fas fa-redo"></i> إعادة المحاولة
-            </button>
-        </div>
-
-        <!-- Database Stats -->
-        <div class="db-stats" id="dbStats" style="display: none;">
-            <div class="stat-card">
-                <i class="fas fa-book"></i>
-                <div class="stat-number" id="totalJournals">0</div>
-                <div class="stat-label">إجمالي المصادر</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-check-circle"></i>
-                <div class="stat-number" id="activeJournals">0</div>
-                <div class="stat-label">نشط</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-exclamation-triangle"></i>
-                <div class="stat-number" id="discontinuedJournals">0</div>
-                <div class="stat-label">متصدرة</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-building"></i>
-                <div class="stat-number" id="publishersCount">0</div>
-                <div class="stat-label">ناشر</div>
-            </div>
-            <div class="stat-card" style="background: #fff5f5; border: 2px solid #dc3545;">
-                <i class="fas fa-ban" style="color: #dc3545;"></i>
-                <div class="stat-number" id="blacklistedCount">0</div>
-                <div class="stat-label">القائمة السوداء</div>
-            </div>
-            <div class="stat-card" style="background: #fff0e6; border: 2px solid #ff6b35;">
-                <i class="fas fa-exclamation-triangle" style="color: #ff6b35;"></i>
-                <div class="stat-number" id="beallCount">0</div>
-                <div class="stat-label">قائمة بيل</div>
-            </div>
-        </div>
-
-        <!-- Search Section -->
-        <div class="search-section" id="searchSection" style="display: none;">
-            <!-- رسالة التحديث السنوي - كبيرة وواضحة -->
-            <div class="update-message" id="updateMessage">
-                <i class="fas fa-calendar-alt"></i>
-                <span>📢 آخر سنتين للتغطية في سكوباس: <span class="update-badge">2025-2026</span></span>
-                <i class="fas fa-bell warning-icon"></i>
-            </div>
-
-            <div class="search-tabs">
-                <button class="search-tab active" id="tabJournals">
-                    <i class="fas fa-book"></i> المجلات
-                </button>
-                <button class="search-tab" id="tabConferences">
-                    <i class="fas fa-users"></i> المؤتمرات
-                </button>
-                <button class="search-tab" id="tabAll">
-                    <i class="fas fa-globe"></i> الكل
-                </button>
+        <!-- API Key Section -->
+        <div class="api-section">
+            <div class="api-key-input">
+                <label><i class="fas fa-key"></i> مفتاح Scopus API:</label>
+                <input type="password" id="apiKeyInput" placeholder="أدخل مفتاح API الخاص بك" dir="ltr">
+                <div class="example-list" style="margin-top: 8px; font-size: 12px;">
+                    ⚠️ يمكن الحصول على مفتاح API مجاناً من: <a href="https://dev.elsevier.com" target="_blank" style="color: #856404;">dev.elsevier.com</a>
+                </div>
             </div>
 
             <div class="search-box">
                 <div class="search-input-wrapper">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="ابحث باسم المجلة، ISSN، EISSN، أو الناشر...">
+                    <input type="text" id="searchInput" placeholder="ابحث بـ ISSN أو عنوان المجلة...">
                 </div>
                 <button id="searchBtn"><i class="fas fa-search"></i> بحث</button>
             </div>
 
-            <div class="filters-grid">
-                <div class="filter-group">
-                    <label><i class="fas fa-power-off"></i> الحالة</label>
-                    <select class="filter-select" id="statusFilter">
-                        <option value="all">جميع الحالات</option>
-                        <option value="Active">نشط فقط</option>
-                        <option value="Inactive">غير نشط</option>
-                        <option value="Discontinued">متصدرة</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label><i class="fas fa-lock-open"></i> الوصول المفتوح</label>
-                    <select class="filter-select" id="oaFilter">
-                        <option value="all">الكل</option>
-                        <option value="OA">مفتوح الوصول</option>
-                        <option value="Non-OA">غير مفتوح</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label><i class="fas fa-language"></i> اللغة</label>
-                    <select class="filter-select" id="langFilter">
-                        <option value="all">جميع اللغات</option>
-                        <option value="ENG">إنجليزية</option>
-                        <option value="FRE">فرنسية</option>
-                        <option value="GER">ألمانية</option>
-                        <option value="SPA">إسبانية</option>
-                        <option value="ARA">عربية</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label><i class="fas fa-globe-asia"></i> المجال العام</label>
-                    <select class="filter-select" id="topLevelFilter">
-                        <option value="all">جميع المجالات</option>
-                        <option value="Life Sciences">العلوم الحياتية</option>
-                        <option value="Social Sciences">العلوم الاجتماعية</option>
-                        <option value="Physical Sciences">العلوم الفيزيائية</option>
-                        <option value="Health Sciences">العلوم الصحية</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="asjc-search">
-                <label><i class="fas fa-tags"></i> تصنيف ASJC</label>
-                <input type="text" id="asjcSearchInput" class="filter-select" placeholder="ابحث عن تخصص..." style="margin-top: 0.5rem;">
-                <div class="asjc-tags" id="asjcTags"></div>
+            <div class="example-list">
+                📝 أمثلة: 
+                <span onclick="setExample('0002-9890')">0002-9890</span>
+                <span onclick="setExample('2166-0727')">2166-0727</span>
+                <span onclick="setExample('1937-3333')">1937-3333</span>
+                <span onclick="setExample('American Mathematical Monthly')">American Mathematical Monthly</span>
+                <span onclick="setExample('IEEE Transactions')">IEEE Transactions</span>
             </div>
         </div>
 
@@ -1100,16 +626,7 @@
         <div id="resultsSection" style="display: none;">
             <div class="results-header">
                 <div class="results-count" id="resultsCount">عرض 0 من 0 نتيجة</div>
-                <div class="sort-options">
-                    <span>ترتيب:</span>
-                    <select id="sortSelect">
-                        <option value="title">الاسم</option>
-                        <option value="status">الحالة</option>
-                        <option value="publisher">الناشر</option>
-                    </select>
-                </div>
             </div>
-
             <div class="journals-grid" id="journalsGrid"></div>
         </div>
     </div>
@@ -1118,7 +635,7 @@
     <div class="modal" id="journalModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-book-open"></i> تفاصيل المصدر</h2>
+                <h2><i class="fas fa-book-open"></i> تفاصيل المجلة</h2>
                 <button class="close-modal" id="closeModal">&times;</button>
             </div>
             <div class="journal-detail" id="journalDetail"></div>
@@ -1127,7 +644,7 @@
 
     <footer class="footer">
         <div class="footer-content">
-            <p>جميع البيانات مأخوذة من قاعدة Scopus الرسمية - تحديث يناير 2026</p>
+            <p>جميع البيانات مقدمة من Scopus API © Elsevier - تحديث مباشر ومستمر</p>
             <p style="margin-top: 1rem; font-size: 0.9rem;">© 2026 Scopus Finder - دليل المجلات العلمية المحكمة</p>
             <div class="designer-credit">
                 <i class="fas fa-code"></i> تصميم وتطوير: عزام عصام - الجامعة التقنية الشمالية، الكلية التقنية الهندسية الموصل، تقنيات هندسة الصناعات الكيمياوية والنفطية
@@ -1136,956 +653,361 @@
     </footer>
 
     <script>
-        // ASJC Classification Codes
-        const asjcClassification = {
-            '1000': 'متعدد التخصصات',
-            '1100': 'العلوم الزراعية والبيولوجية',
-            '1200': 'الفنون والعلوم الإنسانية',
-            '1300': 'الكيمياء الحيوية والوراثة والبيولوجيا الجزيئية',
-            '1400': 'الأعمال والإدارة والمحاسبة',
-            '1500': 'الهندسة الكيميائية',
-            '1600': 'الكيمياء',
-            '1700': 'علوم الحاسوب',
-            '1800': 'علوم القرار',
-            '1900': 'علوم الأرض والكواكب',
-            '2000': 'الاقتصاد والاقتصاد القياسي والمالية',
-            '2100': 'الطاقة',
-            '2200': 'الهندسة',
-            '2300': 'العلوم البيئية',
-            '2400': 'علم المناعة والميكروبيولوجيا',
-            '2500': 'علوم المواد',
-            '2600': 'الرياضيات',
-            '2700': 'الطب',
-            '2800': 'علم الأعصاب',
-            '2900': 'التمريض',
-            '3000': 'علم الأدوية والسموم والصيدلة',
-            '3100': 'الفيزياء وعلم الفلك',
-            '3200': 'علم النفس',
-            '3300': 'العلوم الاجتماعية',
-            '3400': 'البيطرة',
-            '3500': 'طب الأسنان',
-            '3600': 'المهن الصحية'
-        };
-
-        // Global variables
-        let scopusData = [];
-        let blacklistData = [];
-        let beallListData = [];
-        let filteredData = [];
-        let selectedASJC = new Set();
-        let previousSearchTerm = '';
-        let suggestedCorrection = null;
-
-        // Load data when page loads
-        window.addEventListener('load', function() {
-            loadData();
+        const STORAGE_KEY = 'scopus_api_key';
+        
+        // Load saved API key on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedKey = localStorage.getItem(STORAGE_KEY);
+            if (savedKey) {
+                document.getElementById('apiKeyInput').value = savedKey;
+            }
         });
-
-        async function loadData() {
-            const loadingScreen = document.getElementById('loadingScreen');
-            const errorScreen = document.getElementById('errorScreen');
-            
-            try {
-                // تحميل ملف سكوباس
-                console.log('Loading Scopus data...');
-                const response = await fetch('data/ext_list_Jan_2026.xlsx');
-                
-                if (!response.ok) {
-                    throw new Error('Scopus file not found');
-                }
-
-                const arrayBuffer = await response.arrayBuffer();
-                const data = new Uint8Array(arrayBuffer);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                const mainSheet = workbook.Sheets['Scopus Sources Jan. 2026'];
-                if (!mainSheet) {
-                    throw new Error('Sheet not found');
-                }
-
-                const jsonData = XLSX.utils.sheet_to_json(mainSheet, { header: 1 });
-                const headers = jsonData[0];
-                
-                scopusData = [];
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    if (row.length === 0) continue;
-                    
-                    const journal = {};
-                    headers.forEach((header, index) => {
-                        if (header && row[index] !== undefined) {
-                            journal[header] = row[index];
-                        }
-                    });
-                    
-                    scopusData.push(journal);
-                }
-                
-                console.log(`Loaded ${scopusData.length} Scopus journals`);
-
-                // تحميل القائمة السوداء المحلية
-                await loadBlacklist();
-                
-                // تحميل قائمة بيل
-                await loadBeallList();
-
-                // إخفاء شاشة التحميل
-                loadingScreen.style.display = 'none';
-                
-                // إظهار المحتوى
-                document.getElementById('dbStats').style.display = 'grid';
-                document.getElementById('searchSection').style.display = 'block';
-                document.getElementById('resultsSection').style.display = 'block';
-
-                // تحديث الإحصائيات
-                updateStats();
-                loadASJCTags();
-                
-                // عرض جميع البيانات في البداية
-                filteredData = [...scopusData];
-                displayJournals();
-
-            } catch (error) {
-                console.error('Error:', error);
-                
-                loadingScreen.style.display = 'none';
-                errorScreen.style.display = 'block';
-                
-                document.getElementById('globalStats').innerHTML = `
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>فشل التحميل</span>
-                `;
-            }
-        }
-
-        // دالة تحميل القائمة السوداء المحلية
-        async function loadBlacklist() {
-            try {
-                console.log('Loading blacklist...');
-                const response = await fetch('data/blacklist.json');
-                if (!response.ok) {
-                    console.warn('Blacklist file not found');
-                    blacklistData = [];
-                    return;
-                }
-                blacklistData = await response.json();
-                console.log(`Loaded ${blacklistData.length} blacklisted journals`);
-            } catch (error) {
-                console.error('Error loading blacklist:', error);
-                blacklistData = [];
-            }
-        }
-
-        // دالة تحميل قائمة بيل
-        async function loadBeallList() {
-            try {
-                console.log('Loading Beall list...');
-                const response = await fetch('data/beall_list.json');
-                if (!response.ok) {
-                    console.warn('Beall list file not found');
-                    beallListData = [];
-                    return;
-                }
-                
-                beallListData = await response.json();
-                console.log(`Loaded ${beallListData.length} journals from Beall's list`);
-                
-            } catch (error) {
-                console.error('Error loading Beall list:', error);
-                beallListData = [];
-            }
-        }
-
-        // دالة حساب مسافة ليفنشتاين (Levenshtein distance)
-        function levenshteinDistance(a, b) {
-            if (a.length === 0) return b.length;
-            if (b.length === 0) return a.length;
-
-            const matrix = [];
-            for (let i = 0; i <= b.length; i++) {
-                matrix[i] = [i];
-            }
-            for (let j = 0; j <= a.length; j++) {
-                matrix[0][j] = j;
-            }
-
-            for (let i = 1; i <= b.length; i++) {
-                for (let j = 1; j <= a.length; j++) {
-                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                        matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            matrix[i][j - 1] + 1,
-                            matrix[i - 1][j] + 1
-                        );
-                    }
-                }
-            }
-            return matrix[b.length][a.length];
-        }
-
-        // دالة التحقق من تطابق تام للبحث مع عنوان المجلة
-        function isExactMatch(searchTerm, journalTitle) {
-            if (!searchTerm || !journalTitle) return false;
-            
-            // إذا كان البحث رقماً (ISSN/EISSN)
-            if (searchTerm.match(/^\d{4}-?\d{3}[\dxX]$/i)) {
-                const cleanSearch = searchTerm.replace(/-/g, '').toLowerCase();
-                const cleanTitle = journalTitle.replace(/-/g, '').toLowerCase();
-                return cleanTitle === cleanSearch || cleanTitle.includes(cleanSearch);
-            }
-            
-            const searchWords = searchTerm.toLowerCase().split(' ').filter(w => w.length > 0);
-            const titleWords = journalTitle.toLowerCase().split(' ');
-            
-            // كل كلمة في البحث يجب أن تجد تطابقاً في العنوان
-            for (let searchWord of searchWords) {
-                let found = false;
-                
-                for (let titleWord of titleWords) {
-                    // تطابق تام
-                    if (titleWord === searchWord) {
-                        found = true;
-                        break;
-                    }
-                    
-                    // مسافة ليفنشتاين بحد أقصى 3 أحرف (للكلمات الطويلة فقط)
-                    if (searchWord.length >= 4 && titleWord.length >= 4) {
-                        const distance = levenshteinDistance(searchWord, titleWord);
-                        if (distance <= 3) {
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // إذا لم نجد تطابقاً لهذه الكلمة، المجلة غير مطابقة
-                if (!found) {
-                    return false;
-                }
-            }
-            
-            return true;
-        }
-
-        // دالة استخراج آخر سنة تغطية
-        function getLastCoverageYear(coverageString) {
-            if (!coverageString) return null;
-            const matches = coverageString.match(/(\d{4})/g);
-            if (matches && matches.length > 0) {
-                return parseInt(matches[matches.length - 1]);
-            }
-            return null;
-        }
-
-        // دالة التحقق من وجود المجلة في السنتين الأخيرتين
-        function isInRecentYears(journal) {
-            if (!journal || !journal['Coverage']) return false;
-            const lastYear = getLastCoverageYear(journal['Coverage']);
-            if (!lastYear) return false;
-            const currentYear = new Date().getFullYear(); // 2026
-            return lastYear >= currentYear - 1; // 2025 أو 2026
-        }
-
-        // دالة التحقق من وجود المجلة في القائمة السوداء المحلية
-        function isInBlacklist(journalTitle) {
-            if (!journalTitle || !blacklistData.length) return false;
-            
-            const titleLower = journalTitle.toLowerCase().trim();
-            return blacklistData.some(blackTitle => {
-                if (typeof blackTitle !== 'string') return false;
-                const blackLower = blackTitle.toLowerCase().trim();
-                return blackLower === titleLower || 
-                       blackLower.includes(titleLower) || 
-                       titleLower.includes(blackLower);
-            });
-        }
-
-        // دالة التحقق من وجود المجلة في قائمة بيل
-        function isInBeallList(journalTitle) {
-            if (!journalTitle || !beallListData.length) return false;
-            
-            const titleLower = journalTitle.toLowerCase().trim();
-            return beallListData.some(beallTitle => {
-                if (typeof beallTitle !== 'string') return false;
-                const beallLower = beallTitle.toLowerCase().trim();
-                return beallLower === titleLower || 
-                       beallLower.includes(titleLower) || 
-                       titleLower.includes(beallLower);
-            });
-        }
-
-        // دالة البحث عن اقرب تطابق مع تصحيح الأخطاء الإملائية
-        function findClosestMatch(searchTerm, maxDistance = 3) {
-            if (!searchTerm || searchTerm.length < 3) return null;
-            
-            const searchLower = searchTerm.toLowerCase();
-            let bestMatch = null;
-            let bestDistance = Infinity;
-            
-            // البحث في قائمة بيل أولاً
-            beallListData.forEach(title => {
-                if (typeof title !== 'string') return;
-                const titleLower = title.toLowerCase();
-                const distance = levenshteinDistance(searchLower, titleLower);
-                
-                if (distance < bestDistance && distance <= maxDistance) {
-                    bestDistance = distance;
-                    bestMatch = {
-                        title: title,
-                        type: 'beall',
-                        distance: distance
-                    };
-                }
-            });
-            
-            // البحث في القائمة السوداء المحلية
-            blacklistData.forEach(title => {
-                if (typeof title !== 'string') return;
-                const titleLower = title.toLowerCase();
-                const distance = levenshteinDistance(searchLower, titleLower);
-                
-                if (distance < bestDistance && distance <= maxDistance) {
-                    bestDistance = distance;
-                    bestMatch = {
-                        title: title,
-                        type: 'blacklist',
-                        distance: distance
-                    };
-                }
-            });
-            
-            // البحث في مجلات سكوباس
-            scopusData.forEach(journal => {
-                const title = (journal['Source Title'] || '').toLowerCase();
-                const distance = levenshteinDistance(searchLower, title);
-                
-                if (distance < bestDistance && distance <= maxDistance) {
-                    bestDistance = distance;
-                    bestMatch = {
-                        title: journal['Source Title'],
-                        type: 'scopus',
-                        distance: distance
-                    };
-                }
-            });
-            
-            return bestMatch;
-        }
-
-        function updateStats() {
-            const total = scopusData.length;
-            const active = scopusData.filter(j => j['Active or Inactive'] === 'Active').length;
-            const discontinued = scopusData.filter(j => j['Titles Discontinued by Scopus'] === 'Yes').length;
-            const publishers = new Set(scopusData.map(j => j['Publisher']).filter(p => p)).size;
-            const blacklisted = blacklistData.length;
-            const beallCount = beallListData.length;
-
-            document.getElementById('totalJournals').textContent = total.toLocaleString();
-            document.getElementById('activeJournals').textContent = active.toLocaleString();
-            document.getElementById('discontinuedJournals').textContent = discontinued.toLocaleString();
-            document.getElementById('publishersCount').textContent = publishers.toLocaleString();
-            document.getElementById('blacklistedCount').textContent = blacklisted.toLocaleString();
-            document.getElementById('beallCount').textContent = beallCount.toLocaleString();
-            
-            document.getElementById('globalStats').innerHTML = `
-                <i class="fas fa-database"></i>
-                <span>${total.toLocaleString()} مصدر مفهرس</span>
-            `;
-        }
-
-        function loadASJCTags() {
-            const tagsContainer = document.getElementById('asjcTags');
-            let html = '';
-            
-            for (let [code, name] of Object.entries(asjcClassification)) {
-                html += `<span class="asjc-tag" data-code="${code}" onclick="toggleASJC('${code}')">${code} - ${name}</span>`;
-            }
-            
-            tagsContainer.innerHTML = html;
-        }
-
-        window.toggleASJC = (code) => {
-            if (selectedASJC.has(code)) {
-                selectedASJC.delete(code);
+        
+        // Save API key when changed
+        document.getElementById('apiKeyInput').addEventListener('change', function() {
+            if (this.value.trim()) {
+                localStorage.setItem(STORAGE_KEY, this.value.trim());
             } else {
-                selectedASJC.add(code);
+                localStorage.removeItem(STORAGE_KEY);
             }
-            
-            document.querySelectorAll('.asjc-tag').forEach(tag => {
-                if (selectedASJC.has(tag.dataset.code)) {
-                    tag.classList.add('selected');
-                } else {
-                    tag.classList.remove('selected');
-                }
-            });
-            
-            performSearch();
-        };
-
-        // Search functionality
-        document.getElementById('searchBtn').addEventListener('click', performSearch);
-        document.getElementById('searchInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
         });
-
-        document.getElementById('statusFilter').addEventListener('change', performSearch);
-        document.getElementById('oaFilter').addEventListener('change', performSearch);
-        document.getElementById('langFilter').addEventListener('change', performSearch);
-        document.getElementById('topLevelFilter').addEventListener('change', performSearch);
-        document.getElementById('sortSelect').addEventListener('change', performSearch);
-
-        document.getElementById('tabJournals').addEventListener('click', () => {
-            setActiveTab('journals');
-            performSearch();
-        });
-
-        document.getElementById('tabConferences').addEventListener('click', () => {
-            setActiveTab('conferences');
-            performSearch();
-        });
-
-        document.getElementById('tabAll').addEventListener('click', () => {
-            setActiveTab('all');
-            performSearch();
-        });
-
-        function setActiveTab(tab) {
-            document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-            if (tab === 'journals') document.getElementById('tabJournals').classList.add('active');
-            if (tab === 'conferences') document.getElementById('tabConferences').classList.add('active');
-            if (tab === 'all') document.getElementById('tabAll').classList.add('active');
-        }
-
-        function getActiveTab() {
-            if (document.getElementById('tabJournals').classList.contains('active')) return 'journals';
-            if (document.getElementById('tabConferences').classList.contains('active')) return 'conferences';
-            return 'all';
-        }
-
-        // دالة عرض اقتراح التصحيح الإملائي
-        function showSpellingSuggestion(original, suggestion) {
-            const searchSection = document.querySelector('.search-section');
-            const suggestionBox = document.createElement('div');
-            suggestionBox.id = 'suggestionBox';
-            suggestionBox.style.cssText = `
-                background: #fff3cd;
-                border: 2px solid #ffc107;
-                border-radius: 10px;
-                padding: 1rem;
-                margin: 1rem 0;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 1rem;
-            `;
-            
-            const matchPercentage = Math.round((1 - suggestion.distance / Math.max(original.length, suggestion.title.length)) * 100);
-            
-            let badgeHtml = '';
-            if (suggestion.type === 'beall') {
-                badgeHtml = '<span style="background: #ff6b35; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في قائمة بيل</span>';
-            } else if (suggestion.type === 'blacklist') {
-                badgeHtml = '<span style="background: #dc3545; color: white; padding: 0.2rem 0.5rem; border-radius: 50px; font-size: 0.8rem; margin-right: 0.5rem;">⚠️ في القائمة السوداء</span>';
-            }
-            
-            suggestionBox.innerHTML = `
-                <div>
-                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-left: 0.5rem;"></i>
-                    <span>لم نعثر على "${original}"، هل تقصد: </span>
-                    <strong style="color: #856404;">${suggestion.title}</strong>
-                    <span style="color: #856404; font-size: 0.9rem; margin-right: 0.5rem;">
-                        (دقة التطابق: ${matchPercentage}%)
-                    </span>
-                    ${badgeHtml}
-                </div>
-                <div>
-                    <button class="btn btn-primary" onclick="useSuggestedCorrection()" style="margin-left: 0.5rem;">
-                        <i class="fas fa-check"></i> نعم
-                    </button>
-                    <button class="btn btn-outline" onclick="document.getElementById('suggestionBox').remove()">
-                        <i class="fas fa-times"></i> إلغاء
-                    </button>
-                </div>
-            `;
-            
-            searchSection.insertBefore(suggestionBox, document.querySelector('.filters-grid'));
-        }
-
-        // دالة استخدام التصحيح المقترح
-        window.useSuggestedCorrection = function() {
-            if (suggestedCorrection) {
-                document.getElementById('searchInput').value = suggestedCorrection.title;
-                document.getElementById('suggestionBox')?.remove();
-                performSearch();
-            }
-        };
-
-        // دالة البحث المعدلة - تعتمد على التطابق التام لكل الكلمات
-        function performSearch() {
-            const searchTerm = document.getElementById('searchInput').value.trim();
-            const status = document.getElementById('statusFilter').value;
-            const oa = document.getElementById('oaFilter').value;
-            const lang = document.getElementById('langFilter').value;
-            const topLevel = document.getElementById('topLevelFilter').value;
-            const tab = getActiveTab();
-
-            // إخفاء اقتراح التصحيح السابق
-            document.getElementById('suggestionBox')?.remove();
-            suggestedCorrection = null;
-
-            console.log('Searching for:', searchTerm);
-
-            // أولاً: البحث في قائمة بيل
-            let beallResults = [];
-            if (searchTerm && beallListData.length > 0) {
-                beallResults = beallListData.filter(beallTitle => {
-                    if (typeof beallTitle !== 'string') return false;
-                    return isExactMatch(searchTerm, beallTitle);
-                }).map(beallTitle => ({
-                    'Source Title': beallTitle,
-                    'Source Type': 'Journal',
-                    'Publisher': 'غير معروف (قائمة بيل)',
-                    'Active or Inactive': 'Inactive',
-                    'Titles Discontinued by Scopus': 'No',
-                    'isBlacklisted': false,
-                    'isBeallList': true,
-                    'fromBlacklist': false,
-                    'fromBeallList': true
-                }));
-            }
-
-            // ثانياً: البحث في القائمة السوداء المحلية
-            let blacklistResults = [];
-            if (searchTerm && blacklistData.length > 0) {
-                blacklistResults = blacklistData.filter(blackTitle => {
-                    if (typeof blackTitle !== 'string') return false;
-                    return isExactMatch(searchTerm, blackTitle);
-                }).map(blackTitle => ({
-                    'Source Title': blackTitle,
-                    'Source Type': 'Journal',
-                    'Publisher': 'غير معروف (قائمة سوداء محلية)',
-                    'Active or Inactive': 'Inactive',
-                    'Titles Discontinued by Scopus': 'No',
-                    'isBlacklisted': true,
-                    'isBeallList': false,
-                    'fromBlacklist': true,
-                    'fromBeallList': false
-                }));
-            }
-
-            // ثالثاً: البحث في سكوباس
-            let scopusResults = [];
-            if (searchTerm) {
-                scopusResults = scopusData.filter(journal => {
-                    const title = journal['Source Title'] || '';
-                    return isExactMatch(searchTerm, title);
-                }).map(journal => ({
-                    ...journal,
-                    'isBlacklisted': isInBlacklist(journal['Source Title']),
-                    'isBeallList': isInBeallList(journal['Source Title']),
-                    'fromBlacklist': false,
-                    'fromBeallList': false
-                }));
-            } else {
-                // إذا لم يكن هناك كلمة بحث، نعرض كل مجلات سكوباس مع علامات القوائم
-                scopusResults = scopusData.map(journal => ({
-                    ...journal,
-                    'isBlacklisted': isInBlacklist(journal['Source Title']),
-                    'isBeallList': isInBeallList(journal['Source Title']),
-                    'fromBlacklist': false,
-                    'fromBeallList': false
-                }));
-            }
-
-            // دمج النتائج (قائمة بيل أولاً، ثم القائمة السوداء، ثم سكوباس)
-            filteredData = [...beallResults, ...blacklistResults, ...scopusResults];
-
-            // تطبيق الفلاتر الأخرى على نتائج سكوباس فقط
-            filteredData = filteredData.filter(item => {
-                if (item.fromBeallList || item.fromBlacklist) return true;
-
-                if (status !== 'all') {
-                    if (status === 'Discontinued') {
-                        if (!item['Titles Discontinued by Scopus']) return false;
-                    } else {
-                        if ((item['Active or Inactive'] || '') !== status) return false;
-                    }
-                }
-
-                if (oa !== 'all') {
-                    const isOA = item['Open Access Status'] === 'OA';
-                    if (oa === 'OA' && !isOA) return false;
-                    if (oa === 'Non-OA' && isOA) return false;
-                }
-
-                if (lang !== 'all') {
-                    const languages = item['Article Language in Source (Three-Letter ISO Language Codes)'] || '';
-                    if (!languages.includes(lang)) return false;
-                }
-
-                if (topLevel !== 'all') {
-                    const topLevelField = `Top level: ${topLevel}`;
-                    if (!item[topLevelField]) return false;
-                }
-
-                if (selectedASJC.size > 0) {
-                    let hasASJC = false;
-                    for (let code of selectedASJC) {
-                        if (item[code] || (item['All Science Journal Classification Codes (ASJC)'] || '').includes(code)) {
-                            hasASJC = true;
-                            break;
-                        }
-                    }
-                    if (!hasASJC) return false;
-                }
-
-                if (tab === 'journals' && item['Source Type'] !== 'Journal') return false;
-                if (tab === 'conferences' && item['Source Type'] !== 'Conference Proceeding') return false;
-
-                return true;
-            });
-
-            // إزالة التكرارات
-            const uniqueTitles = new Set();
-            filteredData = filteredData.filter(item => {
-                const title = item['Source Title'];
-                if (uniqueTitles.has(title)) {
-                    return false;
-                }
-                uniqueTitles.add(title);
-                return true;
-            });
-
-            console.log(`Found ${filteredData.length} results`);
-
-            // إذا لم توجد نتائج وكان هناك خطأ إملائي محتمل
-            if (filteredData.length === 0 && searchTerm.length >= 3) {
-                const closestMatch = findClosestMatch(searchTerm);
-                if (closestMatch) {
-                    suggestedCorrection = closestMatch;
-                    showSpellingSuggestion(searchTerm, closestMatch);
-                }
-            }
-
-            displayJournals();
-        }
-
-        function displayJournals() {
+        
+        // Search function
+        async function searchJournal() {
+            const query = document.getElementById('searchInput').value.trim();
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const resultsSection = document.getElementById('resultsSection');
             const grid = document.getElementById('journalsGrid');
             
-            if (filteredData.length === 0) {
-                grid.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: white; border-radius: 15px;">
-                        <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                        <h3 style="color: #666;">لا توجد نتائج</h3>
-                        <p style="color: #999;">حاول تعديل معايير البحث</p>
-                    </div>
-                `;
-            } else {
-                grid.innerHTML = filteredData.map(journal => {
-                    const isActive = journal['Active or Inactive'] === 'Active';
-                    const isDiscontinued = journal['Titles Discontinued by Scopus'] === 'Yes';
-                    const isBlacklisted = journal.isBlacklisted || journal.fromBlacklist;
-                    const isBeallList = journal.isBeallList || journal.fromBeallList;
-                    
-                    let cardClass = '';
-                    if (journal.fromBeallList) {
-                        cardClass = 'beall-only';
-                    } else if (journal.fromBlacklist) {
-                        cardClass = 'blacklist-only';
-                    } else if (isDiscontinued) {
-                        cardClass = 'discontinued';
-                    } else if (!isActive) {
-                        cardClass = 'inactive';
-                    }
-                    
-                    if (isBlacklisted && !journal.fromBlacklist) {
-                        cardClass += ' blacklisted';
-                    }
-                    if (isBeallList && !journal.fromBeallList) {
-                        cardClass += ' beall-list';
-                    }
-                    
-                    const issn = journal['ISSN'] || '';
-                    const eissn = journal['EISSN'] || '';
-                    
-                    let badges = '';
-                    if (isBeallList) {
-                        badges += `
-                            <div class="beall-badge">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                ${journal.fromBeallList ? 'قائمة بيل' : 'في قائمة بيل'}
-                            </div>
-                        `;
-                    }
-                    if (isBlacklisted) {
-                        badges += `
-                            <div class="blacklist-badge" style="${isBeallList && !journal.fromBeallList ? 'top: 60px;' : ''}">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                ${journal.fromBlacklist ? 'مجلة وهمية' : 'في القائمة السوداء'}
-                            </div>
-                        `;
-                    }
-                    
-                    // التحقق من وجود المجلة في السنتين الأخيرتين
-                    const inRecentYears = !journal.fromBeallList && !journal.fromBlacklist ? isInRecentYears(journal) : false;
-                    const lastYear = !journal.fromBeallList && !journal.fromBlacklist ? getLastCoverageYear(journal['Coverage']) : null;
-                    
-                    // رسالة حالة التغطية
-                    let coverageHtml = '';
-                    if (!journal.fromBeallList && !journal.fromBlacklist && lastYear) {
-                        if (inRecentYears) {
-                            coverageHtml = `
-                                <div class="coverage-status coverage-current">
-                                    <i class="fas fa-check-circle"></i>
-                                    ✅ هذه المجلة موجودة في سكوباس ${lastYear}
-                                </div>
-                            `;
-                        } else {
-                            coverageHtml = `
-                                <div class="coverage-status coverage-expired">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    ⚠️ هذه المجلة آخر تغطية لها ${lastYear} (غير موجودة في 2025-2026)
-                                </div>
-                            `;
-                        }
-                    }
-                    
-                    return `
-                        <div class="journal-card ${cardClass}">
-                            ${badges}
-                            
-                            <div class="journal-header" style="${(isBeallList || isBlacklisted) ? 'margin-left: 60px;' : ''}">
-                                <div class="journal-title">${journal['Source Title'] || 'غير معروف'}</div>
-                                ${!journal.fromBeallList && !journal.fromBlacklist ? `
-                                    <span class="status-badge ${isDiscontinued ? 'discontinued' : (isActive ? 'active' : 'inactive')}">
-                                        ${isDiscontinued ? '🛑 متصدرة' : (isActive ? '✅ نشط' : '⚠️ غير نشط')}
-                                    </span>
-                                ` : ''}
-                            </div>
-                            
-                            ${!journal.fromBeallList && !journal.fromBlacklist ? `
-                                <div class="journal-ids">
-                                    ${issn ? `<span><i class="fas fa-barcode"></i> ISSN: ${issn}</span>` : ''}
-                                    ${eissn ? `<span><i class="fas fa-qrcode"></i> EISSN: ${eissn}</span>` : ''}
-                                </div>
-                            ` : ''}
-                            
-                            <div class="journal-publisher">
-                                <i class="fas fa-building"></i> ${journal['Publisher'] || 'ناشر غير معروف'}
-                            </div>
-                            
-                            ${!journal.fromBeallList && !journal.fromBlacklist ? `
-                                <div class="journal-metrics">
-                                    ${journal['Source Type'] ? `<span class="metric"><i class="fas fa-tag"></i> ${journal['Source Type']}</span>` : ''}
-                                    ${journal['Coverage'] ? `<span class="metric"><i class="fas fa-calendar"></i> ${journal['Coverage']}</span>` : ''}
-                                    ${journal['Open Access Status'] ? `<span class="metric"><i class="fas fa-lock-open"></i> ${journal['Open Access Status']}</span>` : ''}
-                                </div>
-                            ` : ''}
-                            
-                            ${coverageHtml}
-                            
-                            ${journal['All Science Journal Classification Codes (ASJC)'] && !journal.fromBeallList && !journal.fromBlacklist ? `
-                                <div class="asjc-list">
-                                    ${journal['All Science Journal Classification Codes (ASJC)'].split(';').slice(0, 3).map(code => 
-                                        `<span class="asjc-code">${code}</span>`
-                                    ).join('')}
-                                    ${journal['All Science Journal Classification Codes (ASJC)'].split(';').length > 3 ? 
-                                        `<span class="asjc-code">+${journal['All Science Journal Classification Codes (ASJC)'].split(';').length - 3}</span>` : ''}
-                                </div>
-                            ` : ''}
-                            
-                            <div class="journal-footer">
-                                <button class="btn btn-primary" onclick="showJournalDetails('${journal['Source Title'].replace(/'/g, "\\'")}')">
-                                    <i class="fas fa-info-circle"></i> تفاصيل
-                                </button>
-                                <button class="btn ${isBlacklisted ? 'btn-danger' : (isBeallList ? 'btn-warning' : 'btn-outline')}" onclick="copyJournalInfo('${journal['Source Title'].replace(/'/g, "\\'")}')">
-                                    <i class="fas fa-copy"></i> نسخ
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+            if (!apiKey) {
+                resultsSection.style.display = 'block';
+                grid.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle"></i> ❌ الرجاء إدخال مفتاح Scopus API</div>';
+                return;
             }
-
-            document.getElementById('resultsCount').textContent = 
-                `عرض ${filteredData.length.toLocaleString()} نتيجة من إجمالي ${(scopusData.length + blacklistData.length + beallListData.length).toLocaleString()}`;
+            
+            if (!query) {
+                resultsSection.style.display = 'block';
+                grid.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle"></i> ❌ الرجاء إدخال ISSN أو عنوان المجلة</div>';
+                return;
+            }
+            
+            resultsSection.style.display = 'block';
+            grid.innerHTML = '<div class="loading-container"><div class="spinner"></div><h2>جاري البحث في Scopus...</h2><p>الرجاء الانتظار...</p></div>';
+            
+            try {
+                let url;
+                const isISSN = query.match(/^\d{4}-\d{3}[\dX]$/i) || query.match(/^\d{8,9}$/);
+                
+                if (isISSN) {
+                    let issn = query;
+                    if (!issn.includes('-') && issn.length === 8) {
+                        issn = issn.slice(0, 4) + '-' + issn.slice(4);
+                    }
+                    url = `https://api.elsevier.com/content/serial/title/issn/${issn}?apiKey=${apiKey}`;
+                } else {
+                    url = `https://api.elsevier.com/content/serial/title?title=${encodeURIComponent(query)}&apiKey=${apiKey}`;
+                }
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    if (response.status === 401) throw new Error('مفتاح API غير صالح');
+                    if (response.status === 429) throw new Error('تم تجاوز حد الطلبات المسموح بها');
+                    throw new Error(`خطأ ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data, query);
+            } catch (error) {
+                grid.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i> ❌ ${error.message}</div>`;
+            }
         }
-
-        window.showJournalDetails = (title) => {
-            // البحث في قائمة بيل أولاً
-            const beallJournal = beallListData.includes(title) ? { 'Source Title': title, 'fromBeallList': true } : null;
-            // البحث في القائمة السوداء المحلية
-            const blacklistJournal = !beallJournal && blacklistData.includes(title) ? { 'Source Title': title, 'fromBlacklist': true } : null;
-            // البحث في سكوباس
-            const scopusJournal = !beallJournal && !blacklistJournal ? scopusData.find(j => j['Source Title'] === title) : null;
+        
+        function displayResults(data, query) {
+            const serials = data?.['serial-metadata-response']?.['entry'];
+            const grid = document.getElementById('journalsGrid');
+            const resultsCount = document.getElementById('resultsCount');
             
-            const journal = beallJournal || blacklistJournal || scopusJournal;
-            if (!journal) return;
-
-            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
-            const isBeallList = isInBeallList(title) || beallJournal;
+            if (!serials || serials.length === 0) {
+                grid.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i> ❌ لم يتم العثور على مجلة باسم "${query}"</div>`;
+                resultsCount.textContent = `عرض 0 نتيجة`;
+                return;
+            }
             
-            const modal = document.getElementById('journalModal');
-            const detailDiv = document.getElementById('journalDetail');
+            const journals = Array.isArray(serials) ? serials : [serials];
+            resultsCount.textContent = `عرض ${journals.length} نتيجة`;
             
             let html = '';
             
-            if (isBeallList) {
-                html += `
-                    <div class="beall-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        ⚠️ تحذير: هذه المجلة موجودة في قائمة بيل للمجلات المفترسة
+            for (let i = 0; i < journals.length; i++) {
+                const j = journals[i];
+                html += generateJournalCard(j);
+            }
+            
+            grid.innerHTML = html;
+        }
+        
+        function generateJournalCard(j) {
+            const title = j['dc:title'] || 'غير معروف';
+            const publisher = j['dc:publisher'] || 'غير معروف';
+            const issn = j['prism:issn'] || 'غير متوفر';
+            const eIssn = j['prism:eIssn'] || 'غير متوفر';
+            const sourceType = j['prism:aggregationType'] || 'غير محدد';
+            const openaccess = j['openaccess'] === '1' ? 'نعم' : (j['openaccess'] === '0' ? 'لا' : 'غير محدد');
+            
+            const coverageStart = j['coverageStartYear'] || j['coverage-start-year']?.['$'] || 'غير متوفر';
+            const coverageEnd = j['coverageEndYear'] || j['coverage-end-year']?.['$'] || 'غير متوفر';
+            
+            const lastYear = coverageEnd !== 'غير متوفر' ? parseInt(coverageEnd) : null;
+            const inRecentYears = lastYear && lastYear >= 2024;
+            
+            // CiteScore
+            const citeScore = j['citeScoreYearInfoList']?.['citeScoreCurrentMetric'] || 
+                             j['citeScoreCurrentMetric'] || null;
+            const citeScoreYear = j['citeScoreYearInfoList']?.['citeScoreCurrentMetricYear'] || '2024';
+            
+            // SJR
+            let sjrValue = null;
+            let sjrYear = null;
+            if (j['SJRList']?.['SJR']) {
+                const sjrItems = Array.isArray(j['SJRList']['SJR']) ? j['SJRList']['SJR'] : [j['SJRList']['SJR']];
+                if (sjrItems.length > 0) {
+                    sjrValue = sjrItems[0]['$'] || sjrItems[0]['@sjr'];
+                    sjrYear = sjrItems[0]['@year'];
+                }
+            } else if (j['SJR']) {
+                sjrValue = j['SJR']['@sjr'] || j['SJR']['$'];
+                sjrYear = j['SJR']['@year'];
+            }
+            
+            // SNIP
+            let snipValue = null;
+            let snipYear = null;
+            if (j['SNIPList']?.['SNIP']) {
+                const snipItems = Array.isArray(j['SNIPList']['SNIP']) ? j['SNIPList']['SNIP'] : [j['SNIPList']['SNIP']];
+                if (snipItems.length > 0) {
+                    snipValue = snipItems[0]['$'];
+                    snipYear = snipItems[0]['@year'];
+                }
+            } else if (j['SNIP']) {
+                snipValue = j['SNIP']['$'];
+                snipYear = j['SNIP']['@year'];
+            }
+            
+            // Subjects
+            let subjects = [];
+            if (j['subject-area']) {
+                const areas = Array.isArray(j['subject-area']) ? j['subject-area'] : [j['subject-area']];
+                subjects = areas.map(area => area['$'] || 'غير محدد').slice(0, 5);
+            }
+            
+            // Coverage status HTML
+            let coverageHtml = '';
+            if (lastYear) {
+                if (inRecentYears) {
+                    coverageHtml = `
+                        <div class="coverage-status coverage-current">
+                            <i class="fas fa-check-circle"></i>
+                            ✅ هذه المجلة مفهرسة في Scopus حتى سنة ${lastYear}
+                        </div>
+                    `;
+                } else {
+                    coverageHtml = `
+                        <div class="coverage-status coverage-expired">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            ⚠️ آخر تغطية للمجلة كانت سنة ${lastYear}
+                        </div>
+                    `;
+                }
+            }
+            
+            // Metrics HTML
+            let metricsHtml = '';
+            if (citeScore || sjrValue || snipValue) {
+                metricsHtml = '<div class="metrics-section">';
+                if (citeScore) {
+                    metricsHtml += `
+                        <div class="metric-box">
+                            <div class="metric-value">${citeScore}</div>
+                            <div class="metric-label">CiteScore ${citeScoreYear}</div>
+                        </div>
+                    `;
+                }
+                if (sjrValue) {
+                    metricsHtml += `
+                        <div class="metric-box">
+                            <div class="metric-value">${sjrValue}</div>
+                            <div class="metric-label">SJR ${sjrYear || ''}</div>
+                        </div>
+                    `;
+                }
+                if (snipValue) {
+                    metricsHtml += `
+                        <div class="metric-box">
+                            <div class="metric-value">${snipValue}</div>
+                            <div class="metric-label">SNIP ${snipYear || ''}</div>
+                        </div>
+                    `;
+                }
+                metricsHtml += '</div>';
+            }
+            
+            // Subjects HTML
+            let subjectsHtml = '';
+            if (subjects.length > 0) {
+                subjectsHtml = `
+                    <div class="subjects-list">
+                        ${subjects.map(sub => `<span class="subject-tag">${escapeHtml(sub)}</span>`).join('')}
                     </div>
                 `;
             }
             
-            if (isBlacklisted) {
-                html += `
-                    <div class="blacklist-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        ⚠️ تحذير شديد: هذه المجلة موجودة في القائمة السوداء للمجلات التجارية والمزيفة
+            return `
+                <div class="journal-card">
+                    <div class="journal-title">
+                        <i class="fas fa-book"></i> ${escapeHtml(title)}
                     </div>
-                `;
-            }
-            
-            if (beallJournal) {
-                html += `
-                    <div class="detail-row">
-                        <div class="detail-label">اسم المجلة:</div>
-                        <div class="detail-value">${title}</div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong><i class="fas fa-barcode"></i> ISSN</strong>
+                            <span dir="ltr">${issn}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong><i class="fas fa-qrcode"></i> eISSN</strong>
+                            <span dir="ltr">${eIssn}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong><i class="fas fa-building"></i> الناشر</strong>
+                            <span>${escapeHtml(publisher)}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong><i class="fas fa-tag"></i> النوع</strong>
+                            <span>${sourceType}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong><i class="fas fa-lock-open"></i> وصول مفتوح</strong>
+                            <span>${openaccess}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong><i class="fas fa-calendar"></i> سنوات التغطية</strong>
+                            <span>${coverageStart} - ${coverageEnd}</span>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <div class="detail-label">الحالة:</div>
-                        <div class="detail-value" style="color: #ff6b35; font-weight: bold;">⚠️ في قائمة بيل (مجلة مفترسة)</div>
+                    
+                    ${metricsHtml}
+                    ${subjectsHtml}
+                    ${coverageHtml}
+                    
+                    <div class="journal-footer">
+                        <button class="btn btn-primary" onclick='showDetails(${JSON.stringify(escapeHtml(JSON.stringify(j)))})'>
+                            <i class="fas fa-info-circle"></i> تفاصيل كاملة
+                        </button>
+                        <button class="btn btn-outline" onclick='copyJournalInfo(${JSON.stringify(escapeHtml(title))}, "${issn}", "${publisher}", ${lastYear ? lastYear : 'null'})'>
+                            <i class="fas fa-copy"></i> نسخ
+                        </button>
                     </div>
-                    <div class="detail-row">
-                        <div class="detail-label">تحذير:</div>
-                        <div class="detail-value" style="color: #ff6b35;">هذه المجلة مصنفة كمفترسة حسب قائمة بيل</div>
-                    </div>
-                `;
-            } else if (blacklistJournal) {
-                html += `
-                    <div class="detail-row">
-                        <div class="detail-label">اسم المجلة:</div>
-                        <div class="detail-value">${title}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">الحالة:</div>
-                        <div class="detail-value" style="color: #dc3545; font-weight: bold;">⚠️ في القائمة السوداء (مجلة وهمية)</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">تحذير:</div>
-                        <div class="detail-value" style="color: #dc3545;">هذه المجلة غير معتمدة ولا يمكن النشر فيها للترقيات العلمية</div>
-                    </div>
-                `;
-            } else if (scopusJournal) {
-                for (let [key, value] of Object.entries(scopusJournal)) {
-                    if (value && key !== '') {
-                        let valueColor = '';
-                        if (key.includes('Open Access') && value === 'OA') {
-                            valueColor = 'color: #28a745;';
-                        }
+                </div>
+            `;
+        }
+        
+        function showDetails(journalDataStr) {
+            try {
+                const j = JSON.parse(journalDataStr);
+                const modal = document.getElementById('journalModal');
+                const detailDiv = document.getElementById('journalDetail');
+                
+                let html = '';
+                
+                // Display all available fields
+                for (let [key, value] of Object.entries(j)) {
+                    if (value && value !== '' && typeof value !== 'object') {
                         html += `
-                            <div class="detail-row">
-                                <div class="detail-label">${key}:</div>
-                                <div class="detail-value" style="${valueColor}">${value}</div>
+                            <div class="info-item" style="margin-bottom: 0.5rem;">
+                                <strong>${escapeHtml(key)}:</strong>
+                                <span style="display: block; margin-top: 0.3rem;">${escapeHtml(String(value))}</span>
+                            </div>
+                        `;
+                    } else if (value && typeof value === 'object') {
+                        html += `
+                            <div class="info-item" style="margin-bottom: 0.5rem;">
+                                <strong>${escapeHtml(key)}:</strong>
+                                <span style="display: block; margin-top: 0.3rem; font-size: 0.8rem;">${escapeHtml(JSON.stringify(value))}</span>
                             </div>
                         `;
                     }
                 }
-            }
-            
-            detailDiv.innerHTML = html;
-            modal.classList.add('active');
-        };
-
-        window.copyJournalInfo = (title) => {
-            // البحث في قائمة بيل أولاً
-            const beallJournal = beallListData.includes(title);
-            // البحث في القائمة السوداء المحلية
-            const blacklistJournal = !beallJournal && blacklistData.includes(title);
-            // البحث في سكوباس
-            const scopusJournal = !beallJournal && !blacklistJournal ? scopusData.find(j => j['Source Title'] === title) : null;
-            
-            const isBlacklisted = isInBlacklist(title) || blacklistJournal;
-            const isBeallList = isInBeallList(title) || beallJournal;
-            
-            let info = '';
-            if (beallJournal) {
-                info = `
-⚠️ تحذير: هذه المجلة في قائمة بيل للمجلات المفترسة!
-
-المجلة: ${title}
-الحالة: في قائمة بيل (مجلة مفترسة)
-تنبيه: يجب الحذر عند التعامل مع هذه المجلة
-                `;
-            } else if (blacklistJournal) {
-                info = `
-⚠️ تحذير شديد: هذه المجلة في القائمة السوداء الرسمية!
-
-المجلة: ${title}
-الحالة: في القائمة السوداء (مجلة وهمية)
-تنبيه: لا يمكن الاعتماد عليها للنشر العلمي أو الترقيات
-                `;
-            } else if (scopusJournal) {
-                const warning = (isBlacklisted || isBeallList) ? '⚠️ تحذير: هذه المجلة في قائمة محظورة!\n' : '';
-                const lastYear = getLastCoverageYear(scopusJournal['Coverage']);
-                const inRecentYears = lastYear ? lastYear >= 2025 : false;
                 
-                info = `
-${warning}المجلة: ${scopusJournal['Source Title']}
-ISSN: ${scopusJournal['ISSN'] || 'غير متوفر'}
-EISSN: ${scopusJournal['EISSN'] || 'غير متوفر'}
-الناشر: ${scopusJournal['Publisher'] || 'غير معروف'}
-آخر تغطية: ${scopusJournal['Coverage'] || 'غير معروف'}
-الحالة: ${inRecentYears ? '✅ موجودة في 2025-2026' : '⚠️ غير موجودة في 2025-2026'}
+                // Add raw JSON data
+                html += `
+                    <details style="margin-top: 1rem;">
+                        <summary style="cursor: pointer; color: #2a5298; font-weight: bold; padding: 0.5rem;">
+                            📄 عرض البيانات الخام (JSON)
+                        </summary>
+                        <div class="raw-data">${JSON.stringify(j, null, 2)}</div>
+                    </details>
                 `;
+                
+                detailDiv.innerHTML = html;
+                modal.classList.add('active');
+            } catch(e) {
+                console.error('Error showing details:', e);
             }
+        }
+        
+        function copyJournalInfo(title, issn, publisher, lastYear) {
+            const info = `
+📚 المجلة: ${title}
+📌 ISSN: ${issn}
+🏢 الناشر: ${publisher}
+📅 آخر تغطية في Scopus: ${lastYear ? lastYear : 'غير معروف'}
+🔗 المصدر: Scopus API
+            `.trim();
             
             navigator.clipboard.writeText(info).then(() => {
-                if (beallJournal) {
-                    alert('⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في قائمة بيل)');
-                } else if (blacklistJournal) {
-                    alert('⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في القائمة السوداء)');
-                } else if (isBlacklisted || isBeallList) {
-                    alert('⚠️ تم نسخ معلومات المجلة (تحذير: مجلة في قائمة محظورة)');
-                } else {
-                    alert('تم نسخ معلومات المجلة');
-                }
+                alert('✅ تم نسخ معلومات المجلة');
+            }).catch(() => {
+                alert('❌ فشل نسخ المعلومات');
             });
-        };
-
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function setExample(value) {
+            document.getElementById('searchInput').value = value;
+            searchJournal();
+        }
+        
+        // Event listeners
+        document.getElementById('searchBtn').addEventListener('click', searchJournal);
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchJournal();
+        });
+        
         document.getElementById('closeModal').addEventListener('click', () => {
             document.getElementById('journalModal').classList.remove('active');
         });
-
+        
         window.addEventListener('click', (e) => {
             const modal = document.getElementById('journalModal');
             if (e.target === modal) {
                 modal.classList.remove('active');
             }
         });
-
-        document.getElementById('asjcSearchInput').addEventListener('input', (e) => {
-            const search = e.target.value.toLowerCase();
-            document.querySelectorAll('.asjc-tag').forEach(tag => {
-                if (tag.textContent.toLowerCase().includes(search)) {
-                    tag.style.display = 'inline-block';
-                } else {
-                    tag.style.display = 'none';
-                }
-            });
-        });
-
-        document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.closest('.modal').classList.remove('active');
-            });
-        });
+        
+        // Fix for the showDetails function with escaping
+        window.showDetails = showDetails;
+        window.copyJournalInfo = copyJournalInfo;
+        window.setExample = setExample;
+        window.searchJournal = searchJournal;
     </script>
 </body>
 </html>
